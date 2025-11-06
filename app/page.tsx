@@ -1,12 +1,16 @@
 import Image from "next/image";
 import React from "react";
-import Navbar from "./componnets/Navbar";
+import Layout from "./componnets/layout";
+
 
 export default function Home() {
   return (
     <div>
+    
       <main>
-        <Navbar />
+        <Layout
+        
+        />
       </main>
     </div>
   );

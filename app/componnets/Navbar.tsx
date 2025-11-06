@@ -1,12 +1,14 @@
 import React from 'react';
-//import { FaBreadSlice } from 'react-icons/fa'; 
-
+import { FaBreadSlice } from 'react-icons/fa'; 
+import KosikTlacitko from './kosikTlacitko';
 const Navbar = () => {
   const navItems = [
     { name: 'PRODUKTY', link: '/produkty' },
     { name: 'O NÁS', link: '/o-nas' },
     { name: 'KONTAKT', link: '/kontakt' },
   ];
+
+  const actualItemCount = 0; 
 
   const animatedLinkClasses = `
     relative 
@@ -33,6 +35,7 @@ const Navbar = () => {
     <nav className="bg-gray-900 text-white p-4 shadow-xl">
       <div className="container mx-auto flex justify-between items-center">
         
+        {/* Levá část: Produkty */}
         <div className="flex-1 text-left">
           <a 
             href={navItems[0].link} 
@@ -42,15 +45,18 @@ const Navbar = () => {
           </a>
         </div>
 
+        {/* Střed: Logo/Brand */}
         <div className="flex-1 text-center">
           <a href="/" className="inline-flex items-center text-amber-400 hover:text-amber-300 transition duration-300">
+            <FaBreadSlice className="text-3xl" /> 
             <span className="ml-3 text-2xl font-bold tracking-wider">
               PEKAŘSTVÍ
             </span>
           </a>
         </div>
 
-        <div className="flex-1 text-right space-x-6">
+        {/* Pravá část: O nás, Kontakt A KOŠÍK */}
+        <div className="flex-1 flex items-center justify-end space-x-6">
           <a 
             href={navItems[1].link} 
             className={animatedLinkClasses}
@@ -63,6 +69,10 @@ const Navbar = () => {
           >
             {navItems[2].name}
           </a>
+
+          <div className="ml-6"> 
+            <KosikTlacitko itemCount={actualItemCount} />
+          </div>
         </div>
       </div>
     </nav>

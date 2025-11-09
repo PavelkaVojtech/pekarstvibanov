@@ -1,16 +1,15 @@
-import Image from "next/image";
 import React from "react";
 import Layout from "./componnets/layout";
+import HeroSection from "./componnets/heroSection";
 
 
 export default function Home() {
   return (
     <div>
-    
       <main>
-        <Layout
-        
-        />
+        <Layout>
+          <HeroSection />
+        </Layout>
       </main>
     </div>
   );

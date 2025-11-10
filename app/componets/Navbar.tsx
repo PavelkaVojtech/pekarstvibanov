@@ -4,7 +4,7 @@ import KosikTlacitko from './kosikTlacitko';
 const Navbar = () => {
   const navItems = [
     { name: 'PRODUKTY', link: '/produkty' },
-    { name: 'O NÁS', link: '/o-nas' },
+    { name: 'O NÁS', link: '/onas' },
     { name: 'KONTAKT', link: '/kontakt' },
   ];
 

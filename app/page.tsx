@@ -3,6 +3,8 @@ import Layout from "./componets/layout";
 import HeroSection from "./componets/heroSection";
 import MeziSekce from "./componets/meziSekce";
 import Kategorie from "./componets/kategorie";
+import KontaktniFormular from "./componets/kontaktniFormular";
+import KontaktSekce from "./componets/kontakt";
 
 
 export default function Home() {
@@ -13,6 +15,7 @@ export default function Home() {
           <HeroSection />
           <MeziSekce />
           <Kategorie />
+          <KontaktSekce />
         </Layout>
       </main>
     </div>

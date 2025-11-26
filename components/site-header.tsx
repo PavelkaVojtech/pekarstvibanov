@@ -42,6 +42,16 @@ export function SiteHeader() {
                     {link.name}
                   </Link>
                 ))}
+                
+                {/* PŘIDÁNO: Odkaz na přihlášení pro mobilní verzi */}
+                <div className="border-t border-gray-800 mt-4 pt-4">
+                  <Link
+                    href="/prihlaseni"
+                    className="block px-2 py-2 text-lg font-bold text-amber-500 hover:text-amber-400 transition-colors"
+                  >
+                    Přihlášení
+                  </Link>
+                </div>
               </nav>
             </SheetContent>
           </Sheet>
@@ -51,7 +61,6 @@ export function SiteHeader() {
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2 group">
             <FaBreadSlice className="h-6 w-6 text-amber-500 group-hover:text-amber-400 transition-colors" />
-            {/* ZDE JSME PŘIDALI text-white ABY TO BYLO VIDĚT */}
             <span className="hidden font-bold sm:inline-block text-xl tracking-wider font-serif text-white group-hover:text-gray-200 transition-colors">
               PEKAŘSTVÍ BÁNOV
             </span>
@@ -62,7 +71,6 @@ export function SiteHeader() {
               <Link
                 key={link.href}
                 href={link.href}
-                // ZDE JSME ZMĚNILI BARVU NA text-gray-300 (světlá)
                 className="flex items-center text-sm font-medium text-gray-300 transition-colors hover:text-amber-400"
               >
                 {link.name}

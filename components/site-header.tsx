@@ -2,29 +2,45 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation" // 1. Import hooku
-import { Menu, ShoppingCart } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { Menu, ShoppingCart, User, LogOut } from "lucide-react"
 import { FaBreadSlice } from "react-icons/fa"
+import { authClient } from "@/lib/auth-client" // Importujeme našeho klienta
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
 import { ModeToggle } from "@/components/mode-toggle"
-import { cn } from "@/lib/utils" // 2. Import utility pro spojování tříd
 
 export function SiteHeader() {
-  const pathname = usePathname() // 3. Získání aktuální cesty
-
   const links = [
     { name: 'PRODUKTY', href: '/produkty' },
     { name: 'O NÁS', href: '/onas' },
     { name: 'KONTAKT', href: '/kontakt' },
   ]
 
+  const router = useRouter()
+  
+  // Magický hook, který zjistí, jestli jsi přihlášený
+  // session = data o uživateli (pokud je přihlášen), isPending = načítání
+  const { data: session, isPending } = authClient.useSession()
+
+  // Funkce pro odhlášení
+  const handleLogout = async () => {
+    await authClient.signOut({
+      fetchOptions: {
+        onSuccess: () => {
+          router.push("/") // Přesměrujeme na úvod
+          router.refresh() // Obnovíme stránku, aby zmizelo jméno
+        },
+      },
+    })
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors duration-300">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 mx-auto">
         
-        {/* MOBILNÍ MENU */}
+        {/* 1. MOBILNÍ MENU */}
         <div className="flex items-center md:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -38,74 +54,79 @@ export function SiteHeader() {
                  <FaBreadSlice /> PEKAŘSTVÍ
               </SheetTitle>
               <nav className="flex flex-col gap-4">
-                {links.map((link) => {
-                  const isActive = pathname === link.href
-                  return (
-                    <Link
-                      key={link.href}
-                      href={link.href}
-                      className={cn(
-                        "block px-2 py-2 text-lg font-medium transition-colors hover:text-primary",
-                        isActive ? "text-primary font-bold" : "text-foreground/80"
-                      )}
-                    >
-                      {link.name}
-                    </Link>
-                  )
-                })}
+                {links.map((link) => (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="block px-2 py-2 text-lg font-medium text-foreground/80 hover:text-primary transition-colors"
+                  >
+                    {link.name}
+                  </Link>
+                ))}
                 
+                {/* Mobilní ovládací prvky */}
                 <div className="border-t border-border mt-4 pt-4 flex flex-col gap-4">
                   <div className="flex items-center justify-between px-2">
                     <span className="text-sm font-medium">Vzhled aplikace</span>
                     <ModeToggle />
                   </div>
                   
-                  <Link
-                    href="/prihlaseni"
-                    className={cn(
-                        "block px-2 py-2 text-lg font-bold transition-colors hover:text-primary/80",
-                        pathname === "/prihlaseni" ? "text-primary" : "text-primary"
-                    )}
-                  >
-                    Přihlášení
-                  </Link>
+                  {/* Podmíněné zobrazení pro MOBIL */}
+                  {session ? (
+                    <div className="px-2 space-y-3">
+                        <div className="flex items-center gap-2 text-primary font-bold">
+                            <User className="h-5 w-5" />
+                            <span>{session.user.name}</span>
+                        </div>
+                        <Button 
+                            variant="destructive" 
+                            onClick={handleLogout}
+                            className="w-full justify-start"
+                        >
+                            <LogOut className="mr-2 h-4 w-4" /> Odhlásit se
+                        </Button>
+                    </div>
+                  ) : (
+                    <Link
+                        href="/prihlaseni"
+                        className="block px-2 py-2 text-lg font-bold text-primary hover:text-primary/80 transition-colors"
+                    >
+                        Přihlášení
+                    </Link>
+                  )}
+
                 </div>
               </nav>
             </SheetContent>
           </Sheet>
         </div>
 
-        {/* DESKTOP NAVIGACE */}
+        {/* 2. LOGO A DESKTOP NAVIGACE */}
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2 group">
             <FaBreadSlice className="h-6 w-6 text-primary group-hover:text-primary/80 transition-colors" />
-            <span className="hidden font-bold sm:inline-block text-xl tracking-wider font-serif text-foreground group-hover:text-primary transition-colors">
+            <span className="hidden font-bold sm:inline-block text-xl tracking-wider font-serif text-foreground group-hover:text-foreground/80 transition-colors">
               PEKAŘSTVÍ BÁNOV
             </span>
           </Link>
           
           <nav className="hidden gap-6 md:flex">
-            {links.map((link) => {
-              const isActive = pathname === link.href
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={cn(
-                    "flex items-center text-sm font-medium transition-colors hover:text-primary",
-                    isActive ? "text-primary font-bold" : "text-muted-foreground"
-                  )}
-                >
-                  {link.name}
-                </Link>
-              )
-            })}
+            {links.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center text-sm font-medium text-foreground/80 transition-colors hover:text-primary"
+              >
+                {link.name}
+              </Link>
+            ))}
           </nav>
         </div>
 
-        {/* PRAVÁ STRANA */}
+        {/* 3. PRAVÁ STRANA */}
         <div className="flex flex-1 items-center justify-end space-x-2">
           <nav className="flex items-center space-x-1 md:space-x-2">
+            
             <div className="hidden md:block">
                <ModeToggle />
             </div>
@@ -118,11 +139,31 @@ export function SiteHeader() {
               </span>
             </Button>
 
-            <Button asChild variant="default" size="sm" className="hidden sm:flex bg-primary text-primary-foreground hover:bg-primary/90 font-bold">
-                <Link href="/prihlaseni">
-                    Přihlášení
-                </Link>
-            </Button>
+            {/* Podmíněné zobrazení pro DESKTOP */}
+            {!isPending && (
+                session ? (
+                    <div className="hidden sm:flex items-center gap-4 pl-2">
+                        <span className="text-sm font-medium text-foreground truncate max-w-[150px]">
+                            {session.user.name}
+                        </span>
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={handleLogout}
+                            className="border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50 transition-all"
+                        >
+                            <LogOut className="h-4 w-4" />
+                        </Button>
+                    </div>
+                ) : (
+                    <Button asChild variant="default" size="sm" className="hidden sm:flex bg-primary text-primary-foreground hover:bg-primary/90 font-bold">
+                        <Link href="/prihlaseni">
+                            Přihlášení
+                        </Link>
+                    </Button>
+                )
+            )}
+            
           </nav>
         </div>
       </div>

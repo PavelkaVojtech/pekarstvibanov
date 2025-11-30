@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { authClient } from "@/lib/auth-client"
-import { User, Package, MapPin, Settings, LogOut, Building2, Save, Plus, Trash2, Home, Loader2 } from "lucide-react"
+import { User, Package, MapPin, Settings, LogOut, Building2, Save, Plus, Trash2, Home, Loader2, Lock } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -39,7 +39,6 @@ import { useToast } from "@/components/ui/toast"
 const profileFormSchema = z.object({
   name: z.string().min(2, "Jméno musí mít alespoň 2 znaky"),
   phone: z.string().optional(),
-  // OPRAVA TYPU: .default(false) zajistí, že to nebude undefined
   isCompany: z.boolean().default(false),
   companyName: z.string().optional(),
   ico: z.string().optional(),
@@ -60,6 +59,17 @@ const addressFormSchema = z.object({
   zipCode: z.string().regex(/^\d{3}\s?\d{2}$/, "PSČ musí být 5 číslic (např. 12345)"),
 });
 
+// Schéma pro heslo
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(1, "Zadejte prosím současné heslo"),
+  newPassword: z.string().min(8, "Nové heslo musí mít alespoň 8 znaků"),
+  confirmPassword: z.string().min(8, "Potvrzení hesla musí mít alespoň 8 znaků"),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Hesla se neshodují",
+  path: ["confirmPassword"],
+});
+
+
 type Address = {
     id: string;
     street: string;
@@ -73,14 +83,18 @@ export default function ProfilePage() {
   const { toast } = useToast()
   
   const [addresses, setAddresses] = useState<Address[]>([])
+  
+  // Dialogy states
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
-  const [editingAddress, setEditingAddress] = useState<Address | null>(null)
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false)
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
+  
+  const [editingAddress, setEditingAddress] = useState<Address | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
 
-    // 1. Profilový formulář
-    const profileForm = useForm({
-        resolver: zodResolver(profileFormSchema),
+  // 1. Profilový formulář
+  const profileForm = useForm({
+    resolver: zodResolver(profileFormSchema),
     defaultValues: {
       name: "",
       phone: "",
@@ -91,9 +105,9 @@ export default function ProfilePage() {
     },
   })
 
-    // 2. Adresní formulář
-    const addressForm = useForm({
-        resolver: zodResolver(addressFormSchema),
+  // 2. Adresní formulář
+  const addressForm = useForm({
+    resolver: zodResolver(addressFormSchema),
     defaultValues: {
       street: "",
       city: "",
@@ -101,25 +115,47 @@ export default function ProfilePage() {
     },
   })
 
+  // 3. Formulář hesla
+  const passwordForm = useForm({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  })
+
   // Načtení dat
   useEffect(() => {
-    if (session?.user) {
-        // V reálné aplikaci bychom zde volali endpoint /api/profile/me pro získání detailů (IČO, telefon...)
-        // Zde resetujeme formulář s daty, která máme k dispozici
-        profileForm.reset({
-            name: session.user.name || "",
-            phone: "", 
-            isCompany: false,
-            companyName: "",
-            ico: "",
-            dic: "",
-        })
+    const loadData = async () => {
+        if (!session?.user) return;
+
+        try {
+            const profileRes = await fetch("/api/profile");
+            
+            if (profileRes.ok) {
+                const userData = await profileRes.json();
+                const hasCompanyData = !!(userData.companyName || userData.ico);
+
+                profileForm.reset({
+                    name: userData.name || "",
+                    phone: userData.phone || "",
+                    isCompany: hasCompanyData,
+                    companyName: userData.companyName || "",
+                    ico: userData.ico || "",
+                    dic: userData.dic || "",
+                });
+            }
+        } catch (error) {
+            console.error("Nepodařilo se načíst profil", error);
+        }
         fetchAddresses();
-    }
+    };
+
+    loadData();
   }, [session, profileForm])
 
   const fetchAddresses = async () => {
-      // OPRAVA CESTY: /api/address
       const res = await fetch("/api/address");
       if (res.ok) {
           const data = await res.json();
@@ -143,7 +179,6 @@ export default function ProfilePage() {
         }
 
         toast.success("Profil aktualizován");
-        // OPRAVA: Refresh stránky obnoví session data ze serveru
         router.refresh(); 
     } catch (e: any) {
         toast.error(e.message || "Nastala chyba při ukládání profilu.");
@@ -156,7 +191,6 @@ export default function ProfilePage() {
 
       try {
         let res;
-        // OPRAVA CESTY: /api/address
         if (editingAddress) {
             res = await fetch(`/api/address?id=${editingAddress.id}`, {
                 method: "PUT",
@@ -186,6 +220,36 @@ export default function ProfilePage() {
       }
   }
 
+  // --- Handler pro změnu hesla (BEZ OŠKLIVÉHO ALERTU) ---
+  const onPasswordSubmit = async (values: z.infer<typeof passwordFormSchema>) => {
+    await authClient.changePassword({
+        newPassword: values.newPassword,
+        currentPassword: values.currentPassword,
+        revokeOtherSessions: true, 
+    }, {
+        onSuccess: () => {
+             toast.success("Heslo změněno", "Vaše heslo bylo úspěšně aktualizováno.");
+             setIsPasswordDialogOpen(false);
+             passwordForm.reset();
+        },
+        onError: (ctx) => {
+             // Zde je kouzlo: Místo alertu nastavíme chybu přímo do formuláře
+             const message = ctx.error.message?.toLowerCase() || "";
+
+             // Pokud chyba obsahuje slovo "password" nebo "invalid", je to pravděpodobně špatné heslo
+             if (message.includes("password") || message.includes("invalid") || message.includes("incorrect")) {
+                 passwordForm.setError("currentPassword", { 
+                     type: "manual", 
+                     message: "Zadané heslo není správné." 
+                 });
+             } else {
+                 // Ostatní chyby (server, síť) zobrazíme v toastu
+                 toast.error("Chyba", "Změna hesla se nezdařila. Zkuste to prosím znovu.");
+             }
+        }
+    });
+  }
+
   const handleDeleteAddress = async (id: string) => {
       setDeleteTargetId(id)
       setIsDeleteConfirmOpen(true)
@@ -193,7 +257,6 @@ export default function ProfilePage() {
 
   const confirmDelete = async () => {
     if (!deleteTargetId) return
-    // OPRAVA CESTY: /api/address
     const res = await fetch(`/api/address?id=${deleteTargetId}`, { method: "DELETE" })
     if (res.ok) {
       toast.success("Adresa smazána")
@@ -243,7 +306,6 @@ export default function ProfilePage() {
         <div className="flex flex-col md:flex-row gap-8">
           
           {/* --- LEVÝ SIDEBAR --- */}
-          {/* OPRAVA: shrink-0 místo flex-shrink-0 (Tailwind v4 warning) */}
           <div className="w-full md:w-64 shrink-0 space-y-6">
             <Card>
                 <CardHeader className="text-center pb-2">
@@ -272,9 +334,9 @@ export default function ProfilePage() {
               </TabsList>
 
               {/* 1. ÚDAJE */}
-                            <TabsContent value="info">
-                                <Form {...(profileForm as any)}>
-                                        <form onSubmit={profileForm.handleSubmit(onProfileSubmit as any)} className="space-y-6">
+              <TabsContent value="info">
+                <Form {...(profileForm as any)}>
+                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit as any)} className="space-y-6">
                         <Card>
                             <CardHeader>
                                 <CardTitle>Osobní údaje</CardTitle>
@@ -316,7 +378,6 @@ export default function ProfilePage() {
                             </CardContent>
                         </Card>
 
-                        {/* Firemní údaje */}
                         <Card>
                             <CardHeader>
                                 <div className="flex items-center justify-between">
@@ -416,8 +477,9 @@ export default function ProfilePage() {
                 </Card>
               </TabsContent>
 
-              {/* 3. NASTAVENÍ (ADRESY) */}
+              {/* 3. NASTAVENÍ */}
               <TabsContent value="settings" className="space-y-6">
+                {/* ADRESY */}
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
                         <div>
@@ -445,7 +507,7 @@ export default function ProfilePage() {
                                         render={({ field }) => (
                                             <FormItem>
                                                 <FormLabel>Ulice a číslo</FormLabel>
-                                                <FormControl><Input {...field} /></FormControl>
+                                                <FormControl><Input {...field} placeholder="Např. Hlavní 52" /></FormControl>
                                                 <FormMessage />
                                             </FormItem>
                                         )}
@@ -457,7 +519,7 @@ export default function ProfilePage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>Město</FormLabel>
-                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormControl><Input {...field} placeholder="Bánov" /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
@@ -468,14 +530,16 @@ export default function ProfilePage() {
                                             render={({ field }) => (
                                                 <FormItem>
                                                     <FormLabel>PSČ</FormLabel>
-                                                    <FormControl><Input {...field} /></FormControl>
+                                                    <FormControl><Input {...field} placeholder="687 54" /></FormControl>
                                                     <FormMessage />
                                                 </FormItem>
                                             )}
                                         />
                                     </div>
                                     <DialogFooter>
-                                        <Button type="submit">{editingAddress ? 'Uložit změny' : 'Uložit adresu'}</Button>
+                                        <Button type="submit" className="w-full sm:w-auto">
+                                            {editingAddress ? 'Uložit změny' : 'Uložit adresu'}
+                                        </Button>
                                     </DialogFooter>
                                 </form>
                             </Form>
@@ -512,6 +576,90 @@ export default function ProfilePage() {
                     </CardContent>
                 </Card>
 
+                {/* ZMĚNA HESLA - DIALOG */}
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between">
+                        <div>
+                            <CardTitle className="flex items-center gap-2">
+                                <Settings className="h-5 w-5 text-primary" /> Zabezpečení
+                            </CardTitle>
+                            <CardDescription>Změna hesla k vašemu účtu.</CardDescription>
+                        </div>
+                        <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="secondary">Změnit heslo</Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                                <DialogHeader>
+                                    <DialogTitle>Změna hesla</DialogTitle>
+                                    <DialogDescription>
+                                        Pro změnu hesla zadejte své současné heslo a poté nové heslo.
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <Form {...(passwordForm as any)}>
+                                    <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit as any)} className="space-y-4 py-4">
+                                        <FormField
+                                            control={passwordForm.control}
+                                            name="currentPassword"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Současné heslo</FormLabel>
+                                                    <FormControl>
+                                                        <Input type="password" {...field} />
+                                                    </FormControl>
+                                                    {/* Zde se zobrazí chybová hláška "Zadané heslo není správné" */}
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <div className="grid gap-4 pt-2">
+                                          <FormField
+                                              control={passwordForm.control}
+                                              name="newPassword"
+                                              render={({ field }) => (
+                                                  <FormItem>
+                                                      <FormLabel>Nové heslo</FormLabel>
+                                                      <FormControl>
+                                                          <Input type="password" {...field} />
+                                                      </FormControl>
+                                                      <FormMessage />
+                                                  </FormItem>
+                                              )}
+                                          />
+                                          <FormField
+                                              control={passwordForm.control}
+                                              name="confirmPassword"
+                                              render={({ field }) => (
+                                                  <FormItem>
+                                                      <FormLabel>Potvrzení nového hesla</FormLabel>
+                                                      <FormControl>
+                                                          <Input type="password" {...field} />
+                                                      </FormControl>
+                                                      <FormMessage />
+                                                  </FormItem>
+                                              )}
+                                          />
+                                        </div>
+                                        
+                                        <DialogFooter>
+                                            <Button type="submit" className="w-full sm:w-auto font-bold" disabled={passwordForm.formState.isSubmitting}>
+                                                {passwordForm.formState.isSubmitting ? "Měním..." : "Změnit heslo"}
+                                            </Button>
+                                        </DialogFooter>
+                                    </form>
+                                </Form>
+                            </DialogContent>
+                        </Dialog>
+                    </CardHeader>
+                    {/* Obsah karty jen pro info, že je účet zabezpečen */}
+                    <CardContent className="text-sm text-muted-foreground">
+                        <div className="flex items-center gap-2">
+                          <Lock className="h-4 w-4 text-green-600" />
+                          <span>Váš účet je chráněn heslem.</span>
+                        </div>
+                    </CardContent>
+                </Card>
+
                 <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
                   <DialogContent>
                     <DialogHeader>
@@ -525,24 +673,6 @@ export default function ProfilePage() {
                   </DialogContent>
                 </Dialog>
 
-                {/* Zabezpečení */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
-                            <Settings className="h-5 w-5 text-primary" /> Zabezpečení
-                        </CardTitle>
-                        <CardDescription>Změna hesla k vašemu účtu.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="grid gap-2">
-                            <Label htmlFor="new-pass">Nové heslo</Label>
-                            <Input id="new-pass" type="password" />
-                        </div>
-                    </CardContent>
-                    <CardFooter className="border-t pt-6 flex justify-end">
-                        <Button variant="secondary">Aktualizovat heslo</Button>
-                    </CardFooter>
-                </Card>
               </TabsContent>
 
             </Tabs>

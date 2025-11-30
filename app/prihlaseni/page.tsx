@@ -8,11 +8,12 @@ import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+// import { Card, ... } nejsou potřeba, používáš divy stylované jako karty, což je OK
+import { useToast } from "@/components/ui/toast" // <--- 1. Import toastu
 
 export default function AuthenticationPage() {
   const router = useRouter()
+  const { toast } = useToast() // <--- 2. Inicializace toastu
   const [isLoading, setIsLoading] = useState(false)
 
   // --- STATE PRO PŘIHLÁŠENÍ ---
@@ -34,11 +35,13 @@ export default function AuthenticationPage() {
     }, {
         onSuccess: () => {
              setIsLoading(false)
+             toast.success("Vítejte zpět!", "Přihlášení proběhlo úspěšně.")
              router.push("/")
         },
         onError: (ctx) => {
              setIsLoading(false)
-             alert("Chyba přihlášení: " + ctx.error.message)
+             // <--- 3. Nahrazení alertu toastem
+             toast.error("Chyba přihlášení", ctx.error.message || "Zkontrolujte email a heslo.")
         }
     })
   }
@@ -47,7 +50,8 @@ export default function AuthenticationPage() {
   const handleSignUp = async () => {
     // 1. Validace shody hesel
     if (signUpPassword !== signUpConfirmPassword) {
-        alert("Hesla se neshodují! Zadejte je prosím znovu.")
+        // <--- 3. Nahrazení alertu toastem
+        toast.error("Hesla se neshodují", "Zadejte prosím hesla znovu a ujistěte se, že jsou stejná.")
         return
     }
 
@@ -59,11 +63,13 @@ export default function AuthenticationPage() {
     }, {
         onSuccess: () => {
              setIsLoading(false)
+             toast.success("Účet vytvořen", "Vítejte v naší pekárně!")
              router.push("/") 
         },
         onError: (ctx) => {
              setIsLoading(false)
-             alert("Chyba registrace: " + ctx.error.message)
+             // <--- 3. Nahrazení alertu toastem
+             toast.error("Registrace se nezdařila", ctx.error.message)
         }
     })
   }
@@ -71,7 +77,7 @@ export default function AuthenticationPage() {
   return (
     <div className="min-h-screen bg-background transition-colors duration-300 flex flex-col">
       
-      {/* Volitelné: Malá hlavička, aby uživatel věděl, kde je, i když je to login screen */}
+      {/* Volitelné: Malá hlavička */}
       <div className="py-6 flex justify-center items-center gap-2">
          <FaBreadSlice className="text-3xl text-primary" />
          <span className="text-xl font-bold font-serif tracking-wider">PEKAŘSTVÍ BÁNOV</span>
@@ -125,7 +131,7 @@ export default function AuthenticationPage() {
             </div>
           </div>
 
-          {/* Oddělovač pro mobil (na desktopu skrytý) */}
+          {/* Oddělovač pro mobil */}
           <div className="lg:hidden relative py-4">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />

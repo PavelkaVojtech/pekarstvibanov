@@ -1,8 +1,6 @@
 generator client {
   provider      = "prisma-client-js"
-  // TOTO JE KLÍČOVÁ ZMĚNA: Generujeme klienta do složky, kde ho hledá váš kód
-  output        = "../lib/generated/prisma/client"
-  // Přidána podpora pro různé systémy (Linux na Vercelu)
+  // output smazat - nechat defaultní (do node_modules)
   binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
 }
 

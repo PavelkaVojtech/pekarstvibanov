@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/lib/generated/prisma/client"
+import { PrismaClient } from "@prisma/client"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ProductForm } from "@/components/admin/product-form" // Import nové komponenty

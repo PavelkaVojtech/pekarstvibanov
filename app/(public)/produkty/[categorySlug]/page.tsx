@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/lib/generated/prisma/client"
+import { PrismaClient } from "@prisma/client"
 import { notFound } from "next/navigation"
 import { ProductCard } from "@/components/product-card"
 import Link from "next/link"

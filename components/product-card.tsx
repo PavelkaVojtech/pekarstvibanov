@@ -3,7 +3,7 @@ import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ShoppingCart } from "lucide-react"
-import { Prisma } from "@/lib/generated/prisma/client"
+import { Prisma } from "@prisma/client"
 
 type Product = Prisma.ProductGetPayload<{}>
 

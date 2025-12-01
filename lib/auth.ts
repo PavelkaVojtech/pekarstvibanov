@@ -1,6 +1,8 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import prisma from "@/lib/prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
@@ -9,16 +11,23 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
-  // TOTO JE TA KLÍČOVÁ ČÁST
+  // --- TOTO PŘIDEJTE ---
+  trustedOrigins: [
+    "https://pekarstvibanov.vercel.app", // Hlavní produkční doména
+    "https://pekarstvibanov-*.vercel.app", // Všechny preview verze (hvězdička je důležitá!)
+    // Volitelně i localhost, pokud by zlobil:
+    "http://localhost:3000"
+  ],
+  // ---------------------
   user: {
     additionalFields: {
       role: {
-        type: "string",       // Better Auth bude s rolí pracovat jako s řetězcem
+        type: "string",
         required: false,
         defaultValue: "USER",
-        input: false,         // Zabráníme uživateli, aby si roli poslal při registraci přes API
+        input: false,
       },
     },
   },
-  secret: process.env.BETTER_AUTH_SECRET || "your-secret-key",
+  secret: process.env.BETTER_AUTH_SECRET,
 });

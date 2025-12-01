@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import prisma from "@/lib/prisma"
 import { notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -6,8 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, ShoppingCart, Check, Truck } from "lucide-react"
-
-const prisma = new PrismaClient()
 
 interface ProductDetailPageProps {
     params: Promise<{ id: string }>

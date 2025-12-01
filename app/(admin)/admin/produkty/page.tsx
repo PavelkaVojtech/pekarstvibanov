@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { PrismaClient } from "@prisma/client"
+import prisma from "@/lib/prisma"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
@@ -13,8 +13,6 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2, Edit } from "lucide-react"
 import { deleteProduct } from "./actions" // Import serverové akce pro smazání
-
-const prisma = new PrismaClient()
 
 export default async function AdminProductsPage() {
   // Načteme produkty včetně názvu kategorie

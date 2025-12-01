@@ -1,11 +1,9 @@
-import { PrismaClient } from "@prisma/client"
+import prisma from "@/lib/prisma"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ProductForm } from "@/components/admin/product-form" // Import nové komponenty
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
-
-const prisma = new PrismaClient()
 
 export default async function NewProductPage() {
   // Načteme kategorie pro select box

@@ -58,5 +58,5 @@ npm install
 npm run dev
 ```
 
-Otevřete http://localhost:3000 ve vašem prohlížeči. Aplikace se automaticky aktualizuje při změnách kódu.
+Otevřete http://localhost:3000 ve vašem prohlížeči. Aplikace se automaticky aktualizuje při změnách kódu. 
 

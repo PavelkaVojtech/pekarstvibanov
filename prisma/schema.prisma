@@ -1,9 +1,10 @@
-//
 generator client {
   provider      = "prisma-client-js"
-  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+  // TOTO JE KLÍČOVÁ ZMĚNA: Generujeme klienta do složky, kde ho hledá váš kód
+  output        = "../lib/generated/prisma/client"
+  // Přidána podpora pro různé systémy (Linux na Vercelu)
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
 }
-
 
 datasource db {
   provider = "postgresql"
@@ -28,7 +29,6 @@ model User {
   companyName   String?
   ico           String?
   dic           String?
-
   sessions      Session[]
   accounts      Account[]
   addresses     Address[]

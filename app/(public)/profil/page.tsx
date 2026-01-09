@@ -39,7 +39,7 @@ import { useToast } from "@/components/ui/toast"
 const profileFormSchema = z.object({
   name: z.string().min(2, "Jméno musí mít alespoň 2 znaky"),
   phone: z.string().optional(),
-  isCompany: z.boolean().default(false),
+    isCompany: z.boolean(),
   companyName: z.string().optional(),
   ico: z.string().optional(),
   dic: z.string().optional(),
@@ -68,6 +68,10 @@ const passwordFormSchema = z.object({
   path: ["confirmPassword"],
 });
 
+type ProfileFormValues = z.input<typeof profileFormSchema>
+type AddressFormValues = z.input<typeof addressFormSchema>
+type PasswordFormValues = z.input<typeof passwordFormSchema>
+
 type Address = {
     id: string;
     street: string;
@@ -91,17 +95,17 @@ export default function ProfilePage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null)
 
   // Formuláře (hooks)
-  const profileForm = useForm({
+    const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
     defaultValues: { name: "", phone: "", isCompany: false, companyName: "", ico: "", dic: "" },
   })
 
-  const addressForm = useForm({
+    const addressForm = useForm<AddressFormValues>({
     resolver: zodResolver(addressFormSchema),
     defaultValues: { street: "", city: "", zipCode: "" },
   })
 
-  const passwordForm = useForm({
+    const passwordForm = useForm<PasswordFormValues>({
     resolver: zodResolver(passwordFormSchema),
     defaultValues: { currentPassword: "", newPassword: "", confirmPassword: "" },
   })
@@ -143,18 +147,130 @@ export default function ProfilePage() {
   const fetchAddresses = async () => {
       const res = await fetch("/api/address");
       if (res.ok) {
-          const data = await res.json();
-          setAddresses(data);
+                    const data: unknown = await res.json();
+
+                    if (Array.isArray(data)) {
+                        setAddresses(
+                            data
+                                .map((row) => {
+                                    if (!row || typeof row !== "object") return null
+                                    const record = row as Record<string, unknown>
+                                    const id = record.id
+                                    const street = record.street
+                                    const city = record.city
+                                    const zipCode = record.zipCode
+
+                                    if (
+                                        typeof id !== "string" ||
+                                        typeof street !== "string" ||
+                                        typeof city !== "string" ||
+                                        typeof zipCode !== "string"
+                                    ) {
+                                        return null
+                                    }
+
+                                    return { id, street, city, zipCode } satisfies Address
+                                })
+                                .filter((a): a is Address => Boolean(a))
+                        )
+                    }
       }
   }
 
-  // ... (Tvoje obslužné funkce onProfileSubmit, onAddressSubmit, onPasswordSubmit, handleDeleteAddress, atd. zůstávají STEJNÉ) ...
-  const onProfileSubmit = async (values: any) => { /* ... tvůj kód ... */ }
-  const onAddressSubmit = async (values: any) => { /* ... tvůj kód ... */ }
-  const onPasswordSubmit = async (values: any) => { /* ... tvůj kód ... */ }
+    const onProfileSubmit = async (values: ProfileFormValues) => {
+        try {
+            const res = await fetch("/api/profile", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(values),
+            })
+
+            const data: unknown = await res.json().catch(() => null)
+            if (!res.ok) {
+                const message = (() => {
+                    if (!data || typeof data !== "object") return "Nepodařilo se uložit profil."
+                    const record = data as Record<string, unknown>
+                    return typeof record.error === "string" ? record.error : "Nepodařilo se uložit profil."
+                })()
+                throw new Error(message)
+            }
+
+            toast.success("Uloženo", "Profil byl aktualizován.")
+            router.refresh()
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Chyba při ukládání profilu."
+            toast.error("Chyba", message)
+        }
+    }
+
+    const onAddressSubmit = async (values: AddressFormValues) => {
+        try {
+            const isEdit = Boolean(editingAddress)
+            const url = isEdit ? `/api/address?id=${encodeURIComponent(editingAddress!.id)}` : "/api/address"
+            const method = isEdit ? "PUT" : "POST"
+
+            const res = await fetch(url, {
+                method,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(values),
+            })
+
+            const data: unknown = await res.json().catch(() => null)
+            if (!res.ok) {
+                const message = (() => {
+                    if (!data || typeof data !== "object") return "Nepodařilo se uložit adresu."
+                    const record = data as Record<string, unknown>
+                    return typeof record.error === "string" ? record.error : "Nepodařilo se uložit adresu."
+                })()
+                throw new Error(message)
+            }
+
+            toast.success("Uloženo", isEdit ? "Adresa byla upravena." : "Adresa byla přidána.")
+            setIsAddressDialogOpen(false)
+            setEditingAddress(null)
+            await fetchAddresses()
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Chyba při ukládání adresy."
+            toast.error("Chyba", message)
+        }
+    }
+
+    const onPasswordSubmit = async (_values: PasswordFormValues) => {
+        toast.error("Zatím nepodporováno", "Změna hesla není v projektu zatím implementovaná.")
+    }
   const handleDeleteAddress = async (id: string) => { setDeleteTargetId(id); setIsDeleteConfirmOpen(true); }
-  const confirmDelete = async () => { /* ... tvůj kód ... */ }
-  const openAddressDialog = (addr?: Address) => { /* ... tvůj kód ... */ }
+    const confirmDelete = async () => {
+        if (!deleteTargetId) return
+        try {
+            const res = await fetch(`/api/address?id=${encodeURIComponent(deleteTargetId)}`, { method: "DELETE" })
+            const data: unknown = await res.json().catch(() => null)
+            if (!res.ok) {
+                const message = (() => {
+                    if (!data || typeof data !== "object") return "Nepodařilo se smazat adresu."
+                    const record = data as Record<string, unknown>
+                    return typeof record.error === "string" ? record.error : "Nepodařilo se smazat adresu."
+                })()
+                throw new Error(message)
+            }
+            toast.success("Smazáno", "Adresa byla odstraněna.")
+            setIsDeleteConfirmOpen(false)
+            setDeleteTargetId(null)
+            await fetchAddresses()
+        } catch (error: unknown) {
+            const message = error instanceof Error ? error.message : "Chyba při mazání adresy."
+            toast.error("Chyba", message)
+        }
+    }
+
+    const openAddressDialog = (addr?: Address) => {
+        setEditingAddress(addr ?? null)
+        addressForm.reset({
+            street: addr?.street ?? "",
+            city: addr?.city ?? "",
+            zipCode: addr?.zipCode ?? "",
+        })
+        setIsAddressDialogOpen(true)
+    }
   const handleLogout = async () => {
         try {
             await authClient.signOut()
@@ -266,8 +382,8 @@ export default function ProfilePage() {
 
                     {/* Zde vlož celý obsah TabsContent (info, orders, settings) z tvého původního souboru */}
                     <TabsContent value="info">
-                        <Form {...(profileForm as any)}>
-                             <form onSubmit={profileForm.handleSubmit(onProfileSubmit as any)} className="space-y-6">
+                            <Form {...profileForm}>
+                                <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
                                 <Card>
                                     <CardHeader>
                                         <CardTitle>Osobní údaje</CardTitle>
@@ -429,8 +545,8 @@ export default function ProfilePage() {
                                     <DialogDescription>Zadejte adresu pro doručování pečiva.</DialogDescription>
                                     </DialogHeader>
                                     
-                                    <Form {...(addressForm as any)}>
-                                        <form onSubmit={addressForm.handleSubmit(onAddressSubmit as any)} className="space-y-4 py-4">
+                                    <Form {...addressForm}>
+                                        <form onSubmit={addressForm.handleSubmit(onAddressSubmit)} className="space-y-4 py-4">
                                             <FormField
                                                 control={addressForm.control}
                                                 name="street"
@@ -525,8 +641,8 @@ export default function ProfilePage() {
                                                 Pro změnu hesla zadejte své současné heslo a poté nové heslo.
                                             </DialogDescription>
                                         </DialogHeader>
-                                        <Form {...(passwordForm as any)}>
-                                            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit as any)} className="space-y-4 py-4">
+                                        <Form {...passwordForm}>
+                                            <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4 py-4">
                                                 <FormField
                                                     control={passwordForm.control}
                                                     name="currentPassword"

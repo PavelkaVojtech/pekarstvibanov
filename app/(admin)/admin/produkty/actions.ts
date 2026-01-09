@@ -5,24 +5,32 @@ import { headers } from "next/headers"
 import { prisma } from "@/lib/db"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
-import { redirect } from "next/navigation"
+import { randomUUID } from "crypto"
+import path from "path"
+import fs from "fs/promises"
+
+export type CreateProductState =
+  | { error: string; success?: false }
+  | { success: true; error?: never }
+  | null
+
+const FileSchema = z.custom<File>((value) => value instanceof File)
 
 const productSchema = z.object({
   name: z.string().min(2, "Název musí mít alespoň 2 znaky"),
   description: z.string().optional(),
   price: z.coerce.number().min(0, "Cena nemůže být záporná"),
   categoryId: z.string().min(1, "Vyberte kategorii"),
-  // ZMĚNA: Povolíme cokoliv (File) nebo optional, protože obrázky zatím neřešíme
-  image: z.any().optional(), 
+  image: z.union([FileSchema, z.null()]).optional(),
   isAvailable: z.boolean().optional(),
 })
 
-export async function createProduct(prevState: any, formData: FormData) {
+export async function createProduct(_prevState: CreateProductState, formData: FormData): Promise<CreateProductState> {
   const session = await auth.api.getSession({
     headers: await headers()
   })
 
-  const role = (session?.user as any)?.role
+  const role = (session?.user as { role?: string } | undefined)?.role
 
   if (role !== "ADMIN") {
     return { error: "Nemáte oprávnění přidávat produkty." }
@@ -31,12 +39,15 @@ export async function createProduct(prevState: any, formData: FormData) {
   // Debug: Podíváme se, co nám formulář posílá
   // console.log("Checkbox isAvailable:", formData.get("isAvailable"))
 
+  const imageValue = formData.get("image")
+  const image = imageValue instanceof File && imageValue.size > 0 ? imageValue : null
+
   const rawData = {
     name: formData.get("name"),
     description: formData.get("description"),
     price: formData.get("price"),
     categoryId: formData.get("categoryId"),
-    image: formData.get("image"), // Tady teď přijde File objekt
+    image,
     // Checkbox vrací "on" pokud je zaškrtnutý, jinak null
     isAvailable: formData.get("isAvailable") === "on", 
   }
@@ -48,14 +59,34 @@ export async function createProduct(prevState: any, formData: FormData) {
   }
 
   try {
+    let imageUrl: string | null = null
+
+    if (result.data.image instanceof File) {
+      if (!result.data.image.type?.startsWith("image/")) {
+        return { error: "Obrázek musí být typu image/*" }
+      }
+
+      const uploadsDir = path.join(process.cwd(), "public", "uploads")
+      await fs.mkdir(uploadsDir, { recursive: true })
+
+      const ext = path.extname(result.data.image.name || "").toLowerCase()
+      const safeExt = ext && ext.length <= 10 ? ext : ""
+      const fileName = `${randomUUID()}${safeExt}`
+      const filePath = path.join(uploadsDir, fileName)
+
+      const arrayBuffer = await result.data.image.arrayBuffer()
+      await fs.writeFile(filePath, Buffer.from(arrayBuffer))
+
+      imageUrl = `/uploads/${fileName}`
+    }
+
     await prisma.product.create({
       data: {
         name: result.data.name,
         description: result.data.description,
         price: result.data.price,
         categoryId: result.data.categoryId,
-        // ZMĚNA: Zatím natvrdo null, protože neřešíme upload
-        imageUrl: null, 
+        imageUrl,
         isAvailable: result.data.isAvailable ?? true,
       },
     })
@@ -66,12 +97,13 @@ export async function createProduct(prevState: any, formData: FormData) {
 
   revalidatePath("/admin/produkty")
   revalidatePath("/produkty")
-  redirect("/admin/produkty")
+  return { success: true }
 }
 
 export async function deleteProduct(id: string) {
   const session = await auth.api.getSession({ headers: await headers() })
-  if ((session?.user as any)?.role !== "ADMIN") return
+  const role = (session?.user as { role?: string } | undefined)?.role
+  if (role !== "ADMIN") return
 
   try {
     await prisma.product.delete({ where: { id } })

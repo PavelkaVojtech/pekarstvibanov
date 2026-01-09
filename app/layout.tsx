@@ -4,13 +4,17 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { ToastProvider } from "@/components/ui/toast";
 import { Toaster } from "@/components/ui/toaster";
 import { CartProvider } from "@/components/providers/cart-provider";
+import { cookies } from "next/headers";
 
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies()
+  const initialItemCount = Number(cookieStore.get("cart_count")?.value ?? 0) || 0
+
   return (
     <html lang="cs" suppressHydrationWarning>
       <body className={`antialiased flex flex-col min-h-screen font-sans`}>
@@ -21,7 +25,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
           <ToastProvider>
-            <CartProvider>
+            <CartProvider initialItemCount={initialItemCount}>
               {children}
             </CartProvider>
             <Toaster />

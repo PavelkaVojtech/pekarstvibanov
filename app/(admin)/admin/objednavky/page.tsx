@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db"
 import { Badge } from "@/components/ui/badge"
+import type { BadgeProps } from "@/components/ui/badge"
 import {
   Table,
   TableBody,
@@ -21,7 +22,7 @@ export default async function AdminOrdersPage() {
     }
   })
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string): BadgeProps["variant"] => {
     switch (status) {
       case "PENDING": return "secondary"
       case "CONFIRMED": return "default"
@@ -56,7 +57,7 @@ export default async function AdminOrdersPage() {
                   <div className="text-xs text-muted-foreground">{order.user.email}</div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getStatusColor(order.status) as any}>
+                  <Badge variant={getStatusColor(order.status)}>
                     {order.status}
                   </Badge>
                 </TableCell>

@@ -6,6 +6,14 @@ import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
 
+type ViewTransition = {
+  ready: Promise<void>
+}
+
+type DocumentWithViewTransition = Document & {
+  startViewTransition?: (callback: () => void) => ViewTransition
+}
+
 export function ModeToggle() {
   const { theme, setTheme } = useTheme()
   const [mounted, setMounted] = React.useState(false)
@@ -19,8 +27,10 @@ export function ModeToggle() {
     const nextTheme = isDark ? "light" : "dark"
 
     // 1. Kontrola podpory View Transitions API (moderní prohlížeče)
-    // @ts-ignore - Typescript zatím nemusí znát startViewTransition
-    if (!document.startViewTransition) {
+    const startViewTransition = (document as unknown as DocumentWithViewTransition)
+      .startViewTransition
+
+    if (!startViewTransition) {
       setTheme(nextTheme)
       return
     }
@@ -34,8 +44,7 @@ export function ModeToggle() {
     )
 
     // 3. Spuštění přechodu
-    // @ts-ignore
-    const transition = document.startViewTransition(() => {
+    const transition = startViewTransition(() => {
       setTheme(nextTheme)
     })
 

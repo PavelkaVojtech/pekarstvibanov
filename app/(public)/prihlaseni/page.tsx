@@ -40,7 +40,7 @@ export default function AuthenticationPage() {
              // --- NOVÁ LOGIKA PŘESMĚROVÁNÍ ---
              // Díky našemu nastavení už TypeScript ví o 'role', 
              // ale pro jistotu to můžeme přetypovat, kdyby editor zlobil.
-             const role = (ctx.data.user as any).role;
+             const role = (ctx.data.user as { role?: string } | null | undefined)?.role
 
              if (role === "ADMIN") {
                  router.push("/admin") // Admin jde do administrace

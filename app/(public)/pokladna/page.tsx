@@ -53,8 +53,9 @@ export default function CheckoutPage() {
       clearCart()
       toast({ title: "Objednávka odeslána!", description: "Brzy se vám ozveme." })
       router.push("/profil") // Nebo na stránku s poděkováním
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Chyba", description: error.message })
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Nepodařilo se odeslat objednávku."
+      toast({ variant: "destructive", title: "Chyba", description: message })
     } finally {
       setLoading(false)
     }

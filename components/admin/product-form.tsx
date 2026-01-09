@@ -1,7 +1,7 @@
 "use client"
 
-import { useActionState } from "react"
-import { createProduct } from "@/app/(admin)/admin/produkty/actions"
+import { useActionState, useEffect, useRef } from "react"
+import { createProduct, type CreateProductState } from "@/app/(admin)/admin/produkty/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,14 +21,27 @@ interface ProductFormProps {
 }
 
 export function ProductForm({ categories }: ProductFormProps) {
-  const [state, formAction, isPending] = useActionState(createProduct, null)
+  const [state, formAction, isPending] = useActionState(createProduct, null as CreateProductState)
+  const formRef = useRef<HTMLFormElement>(null)
+
+  useEffect(() => {
+    if (state?.success) {
+      formRef.current?.reset()
+    }
+  }, [state?.success])
 
   return (
-    <form action={formAction} className="space-y-6">
+    <form ref={formRef} action={formAction} className="space-y-6">
       
       {state?.error && (
         <div className="p-3 text-sm text-red-500 bg-red-50 dark:bg-red-950/20 border border-red-200 rounded-md">
           {state.error}
+        </div>
+      )}
+
+      {state?.success && (
+        <div className="p-3 text-sm text-green-600 bg-green-50 dark:bg-green-950/20 border border-green-200 rounded-md">
+          Produkt byl úspěšně uložen.
         </div>
       )}
 

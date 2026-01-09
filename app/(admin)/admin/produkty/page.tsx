@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { PrismaClient } from "@/lib/generated/prisma/client"
+import { prisma } from "@/lib/db"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import {
@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2, Edit } from "lucide-react"
 import { deleteProduct } from "./actions" // Import serverové akce pro smazání
 
-const prisma = new PrismaClient()
+export const dynamic = "force-dynamic"
 
 export default async function AdminProductsPage() {
   // Načteme produkty včetně názvu kategorie
@@ -59,7 +59,7 @@ export default async function AdminProductsPage() {
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {products.map((product) => (
+                        {products.map((product: (typeof products)[number]) => (
                             <TableRow key={product.id}>
                                 <TableCell className="font-medium">{product.name}</TableCell>
                                 <TableCell>{product.category.name}</TableCell>

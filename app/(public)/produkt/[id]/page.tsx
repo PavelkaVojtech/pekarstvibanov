@@ -1,4 +1,4 @@
-import { PrismaClient } from "@/lib/generated/prisma/client"
+import { prisma } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Image from "next/image"
 import Link from "next/link"
@@ -8,7 +8,7 @@ import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Check, Truck } from "lucide-react"
 import { AddToCart } from "@/components/add-to-cart" // NOVÝ IMPORT
 
-const prisma = new PrismaClient()
+export const dynamic = "force-dynamic"
 
 interface ProductDetailPageProps {
     params: Promise<{ id: string }>

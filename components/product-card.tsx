@@ -1,10 +1,8 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Prisma } from "@/lib/generated/prisma/client"
+import type { Product } from "@prisma/client"
 import { AddToCart } from "@/components/add-to-cart" // NOVÝ IMPORT
-
-type Product = Prisma.ProductGetPayload<{}>
 
 interface ProductCardProps {
   product: Product

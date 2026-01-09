@@ -156,9 +156,11 @@ export default function ProfilePage() {
   const confirmDelete = async () => { /* ... tvůj kód ... */ }
   const openAddressDialog = (addr?: Address) => { /* ... tvůj kód ... */ }
   const handleLogout = async () => {
-    await authClient.signOut({
-      fetchOptions: { onSuccess: () => { router.push("/") } },
-    })
+        try {
+            await authClient.signOut()
+        } finally {
+            window.location.assign("/")
+        }
   }
 
 

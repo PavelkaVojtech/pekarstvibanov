@@ -1,11 +1,11 @@
-import { PrismaClient } from "@/lib/generated/prisma/client"
+import { prisma } from "@/lib/db"
 import { notFound } from "next/navigation"
 import { ProductCard } from "@/components/product-card"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 
-const prisma = new PrismaClient()
+export const dynamic = "force-dynamic"
 
 interface CategoryPageProps {
     params: Promise<{ categorySlug: string }>
@@ -62,7 +62,7 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10">
-                    {category.products.map((product) => (
+                    {category.products.map((product: (typeof category.products)[number]) => (
                         <ProductCard key={product.id} product={product} />
                     ))}
                 </div>

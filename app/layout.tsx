@@ -20,12 +20,12 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-          <CartProvider>
-            <ToastProvider>
+          <ToastProvider>
+            <CartProvider>
               {children}
-              <Toaster />
-            </ToastProvider>
-          </CartProvider>
+            </CartProvider>
+            <Toaster />
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

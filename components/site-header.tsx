@@ -24,14 +24,11 @@ export function SiteHeader() {
   const { itemCount } = useCart() // Získání počtu položek
 
   const handleLogout = async () => {
-    await authClient.signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          router.push("/")
-          router.refresh()
-        },
-      },
-    })
+    try {
+      await authClient.signOut()
+    } finally {
+      window.location.assign("/")
+    }
   }
 
   return (

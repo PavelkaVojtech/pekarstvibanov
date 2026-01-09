@@ -2,12 +2,10 @@
 
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
-import { PrismaClient } from "@/lib/generated/prisma/client"
+import { prisma } from "@/lib/db"
 import { z } from "zod"
 import { revalidatePath } from "next/cache"
 import { redirect } from "next/navigation"
-
-const prisma = new PrismaClient()
 
 const productSchema = z.object({
   name: z.string().min(2, "Název musí mít alespoň 2 znaky"),

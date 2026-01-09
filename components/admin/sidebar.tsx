@@ -44,8 +44,7 @@ export function AdminSidebar() {
       try {
         await authClient.signOut()
       } finally {
-        router.push("/")
-        router.refresh()
+        window.location.assign("/")
       }
     }
 

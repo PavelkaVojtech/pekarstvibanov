@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
-import { PrismaClient } from "@/lib/generated/prisma/client";
+import { prisma } from "@/lib/db";
 import { z } from "zod";
-
-const prisma = new PrismaClient();
 
 // Validace vstupu
 const addressSchema = z.object({

@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/table"
 import { OrderActions } from "./order-actions"
 
+export const dynamic = "force-dynamic"
+
 export default async function AdminOrdersPage() {
   const orders = await prisma.order.findMany({
     orderBy: { createdAt: "desc" },
@@ -46,7 +48,7 @@ export default async function AdminOrdersPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {orders.map((order) => (
+            {orders.map((order: (typeof orders)[number]) => (
               <TableRow key={order.id}>
                 <TableCell className="font-medium">{order.orderNumber}</TableCell>
                 <TableCell>

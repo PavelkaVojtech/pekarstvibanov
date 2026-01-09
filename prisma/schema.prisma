@@ -1,4 +1,3 @@
-//
 generator client {
   provider = "prisma-client"
   output   = "../lib/generated/prisma"
@@ -27,7 +26,7 @@ model User {
   companyName   String?
   ico           String?
   dic           String?
-
+  
   sessions      Session[]
   accounts      Account[]
   addresses     Address[]
@@ -94,17 +93,28 @@ model Product {
   @@map("product")
 }
 
-// --- OBJEDNÁVKY ---
+// --- OBJEDNÁVKY (UPDATED) ---
 
 model Order {
   id          String      @id @default(cuid())
-  orderNumber String      @unique
+  orderNumber String      @unique // Např. 20240001
   userId      String
-  status      OrderStatus @default(PENDING)
+  
+  // Stavy a nastavení
+  status      OrderStatus   @default(PENDING)
+  type        OrderType     @default(ONE_TIME)
+  paymentType PaymentType   @default(CASH_ON_DELIVERY)
+  
+  // Pravidelnost (např. "weekly", "daily") - vyplněno jen pokud type == RECURRING
+  recurrence  String?
+  
   totalPrice  Decimal     @db.Decimal(10, 2)
   note        String?
   
-  // SNAPSHOT ADRESY (Zde se uloží adresa platná v době objednávky)
+  // Fakturace
+  billingInvoiced Boolean @default(false) // Zda už byla objednávka zahrnuta do souhrnné faktury
+
+  // SNAPSHOT ADRESY (Uloženo natvrdo pro historii)
   deliveryStreet  String
   deliveryCity    String
   deliveryZip     String
@@ -124,7 +134,7 @@ model OrderItem {
   orderId   String
   productId String
   quantity  Int
-  price     Decimal @db.Decimal(10, 2)
+  price     Decimal @db.Decimal(10, 2) // Cena v momentě objednání
 
   order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product   Product @relation(fields: [productId], references: [id])
@@ -133,12 +143,23 @@ model OrderItem {
 }
 
 enum OrderStatus {
-  PENDING
-  CONFIRMED
-  BAKING
-  READY
-  COMPLETED
-  CANCELLED
+  PENDING     // Čeká na schválení adminem
+  CONFIRMED   // Schváleno adminem -> odeslat email
+  BAKING      // Ve výrobě
+  READY       // Připraveno k vyzvednutí/rozvozu
+  COMPLETED   // Hotovo/Předáno
+  CANCELLED   // Zrušeno
+}
+
+enum OrderType {
+  ONE_TIME
+  RECURRING
+}
+
+enum PaymentType {
+  CASH_ON_DELIVERY  // Hotově/Karta na místě
+  ONLINE_CARD       // Online platba
+  INVOICE           // Na fakturu (souhrnná)
 }
 
 // --- BETTER AUTH ---

@@ -5,7 +5,8 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, ShoppingCart, Check, Truck } from "lucide-react"
+import { ArrowLeft, Check, Truck } from "lucide-react"
+import { AddToCart } from "@/components/add-to-cart" // NOVÝ IMPORT
 
 const prisma = new PrismaClient()
 
@@ -14,7 +15,6 @@ interface ProductDetailPageProps {
 }
 
 export default async function ProductDetailPage({ params }: ProductDetailPageProps) {
-    // Tady získáváme ID produktu
     const { id } = await params
 
     const product = await prisma.product.findUnique({
@@ -91,9 +91,23 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                     </div>
 
                     <div className="flex gap-4 pt-4">
-                        <Button size="lg" className="flex-1 font-bold text-lg h-14 shadow-md" disabled={!product.isAvailable}>
-                            <ShoppingCart className="mr-2 h-5 w-5" /> Přidat do košíku
-                        </Button>
+                        {/* ZDE POUŽIJEME NOVOU KOMPONENTU */}
+                        {product.isAvailable ? (
+                            <div className="flex-1">
+                                <AddToCart 
+                                    product={{
+                                        id: product.id,
+                                        name: product.name,
+                                        price: Number(product.price),
+                                        imageUrl: product.imageUrl
+                                    }} 
+                                    size="lg"
+                                    className="w-full h-14 text-lg font-bold shadow-md"
+                                />
+                            </div>
+                        ) : (
+                            <Button size="lg" disabled className="flex-1">Není skladem</Button>
+                        )}
                     </div>
 
                     <div className="bg-muted/30 p-4 rounded-lg border border-border text-sm space-y-2 mt-4">

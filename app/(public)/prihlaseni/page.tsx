@@ -1,32 +1,26 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { FaBreadSlice, FaSignInAlt, FaUserPlus } from "react-icons/fa"
 import { authClient } from "@/lib/auth-client"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-// import { Card, ... } nejsou potřeba, používáš divy stylované jako karty, což je OK
-import { useToast } from "@/components/ui/toast" // <--- 1. Import toastu
+import { useToast } from "@/components/ui/toast"
 
 export default function AuthenticationPage() {
-  const router = useRouter()
-  const { toast } = useToast() // <--- 2. Inicializace toastu
+  const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
 
-  // --- STATE PRO PŘIHLÁŠENÍ ---
   const [signInEmail, setSignInEmail] = useState("")
   const [signInPassword, setSignInPassword] = useState("")
 
-  // --- STATE PRO REGISTRACI ---
   const [signUpName, setSignUpName] = useState("")
   const [signUpEmail, setSignUpEmail] = useState("")
   const [signUpPassword, setSignUpPassword] = useState("")
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("")
 
-  // Funkce pro PŘIHLÁŠENÍ
   const handleSignIn = async () => {
     setIsLoading(true)
     await authClient.signIn.email({
@@ -37,18 +31,9 @@ export default function AuthenticationPage() {
              setIsLoading(false)
              toast.success("Vítejte zpět!", "Přihlášení proběhlo úspěšně.")
              
-             // --- NOVÁ LOGIKA PŘESMĚROVÁNÍ ---
-             // Díky našemu nastavení už TypeScript ví o 'role', 
-             // ale pro jistotu to můžeme přetypovat, kdyby editor zlobil.
              const role = (ctx.data.user as { role?: string } | null | undefined)?.role
 
-             if (role === "ADMIN") {
-                 router.push("/admin") // Admin jde do administrace
-             } else {
-                 router.push("/")      // Zákazník jde na domovskou stránku
-             }
-             
-             router.refresh() // Obnovíme data, aby se načetla nová session v layoutu
+             window.location.assign(role === "ADMIN" ? "/admin" : "/")
         },
         onError: (ctx) => {
              setIsLoading(false)
@@ -57,11 +42,8 @@ export default function AuthenticationPage() {
     })
   }
 
-  // Funkce pro REGISTRACI
   const handleSignUp = async () => {
-    // 1. Validace shody hesel
     if (signUpPassword !== signUpConfirmPassword) {
-        // <--- 3. Nahrazení alertu toastem
         toast.error("Hesla se neshodují", "Zadejte prosím hesla znovu a ujistěte se, že jsou stejná.")
         return
     }
@@ -75,11 +57,10 @@ export default function AuthenticationPage() {
         onSuccess: () => {
              setIsLoading(false)
              toast.success("Účet vytvořen", "Vítejte v naší pekárně!")
-             router.push("/") 
+         window.location.assign("/")
         },
         onError: (ctx) => {
              setIsLoading(false)
-             // <--- 3. Nahrazení alertu toastem
              toast.error("Registrace se nezdařila", ctx.error.message)
         }
     })
@@ -87,8 +68,7 @@ export default function AuthenticationPage() {
 
   return (
     <div className="min-h-screen bg-background transition-colors duration-300 flex flex-col">
-      
-      {/* Volitelné: Malá hlavička */}
+
       <div className="py-6 flex justify-center items-center gap-2">
          <FaBreadSlice className="text-3xl text-primary" />
          <span className="text-xl font-bold font-serif tracking-wider">PEKAŘSTVÍ BÁNOV</span>
@@ -96,8 +76,6 @@ export default function AuthenticationPage() {
 
       <div className="flex-1 container mx-auto px-4 flex items-center justify-center">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 w-full max-w-5xl my-8">
-          
-          {/* --- LEVÁ PŮLKA: PŘIHLÁŠENÍ --- */}
           <div className="flex flex-col justify-center p-6 lg:p-10 rounded-2xl bg-card border border-border shadow-sm">
             <div className="mx-auto w-full max-w-sm space-y-6">
                 <div className="flex flex-col space-y-2 text-center">
@@ -142,7 +120,6 @@ export default function AuthenticationPage() {
             </div>
           </div>
 
-          {/* Oddělovač pro mobil */}
           <div className="lg:hidden relative py-4">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />
@@ -154,7 +131,6 @@ export default function AuthenticationPage() {
             </div>
           </div>
 
-          {/* --- PRAVÁ PŮLKA: REGISTRACE --- */}
           <div className="flex flex-col justify-center p-6 lg:p-10 rounded-2xl bg-muted/30 border border-border border-dashed">
             <div className="mx-auto w-full max-w-sm space-y-6">
                 <div className="flex flex-col space-y-2 text-center">

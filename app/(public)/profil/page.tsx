@@ -13,8 +13,17 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Checkbox } from "@/components/ui/checkbox"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
 import {
   Dialog,
   DialogContent,
@@ -34,6 +43,7 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { useToast } from "@/components/ui/toast"
+import { cancelOrder } from "@/app/actions/orders"
 
 // ... (Zbytek tvých schémat a typů zůstává stejný - profileFormSchema, addressFormSchema, atd.) ...
 const profileFormSchema = z.object({
@@ -79,12 +89,24 @@ type Address = {
     zipCode: string;
 }
 
+type UserOrder = {
+    id: string
+    orderNumber: string
+    status: string
+    totalPrice: number | string
+    createdAt: string
+    deliveryMethod: string | null
+    requestedDeliveryDate: string | null
+}
+
 export default function ProfilePage() {
   const router = useRouter()
   const { data: session, isPending } = authClient.useSession()
   const { toast } = useToast()
   
   const [addresses, setAddresses] = useState<Address[]>([])
+    const [orders, setOrders] = useState<UserOrder[]>([])
+    const [ordersLoading, setOrdersLoading] = useState(false)
   
   // Dialogy states
   const [isAddressDialogOpen, setIsAddressDialogOpen] = useState(false)
@@ -176,6 +198,67 @@ export default function ProfilePage() {
                     }
       }
   }
+
+    const fetchOrders = async () => {
+        setOrdersLoading(true)
+        try {
+            const res = await fetch("/api/orders")
+            if (!res.ok) {
+                setOrders([])
+                return
+            }
+            const data: unknown = await res.json()
+            if (Array.isArray(data)) {
+                setOrders(
+                    data
+                        .map((row) => {
+                            if (!row || typeof row !== "object") return null
+                            const record = row as Record<string, unknown>
+                            const id = record.id
+                            const orderNumber = record.orderNumber
+                            const status = record.status
+                            const totalPrice = record.totalPrice
+                            const createdAt = record.createdAt
+                            const deliveryMethod = record.deliveryMethod
+                            const requestedDeliveryDate = record.requestedDeliveryDate
+                            if (typeof id !== "string" || typeof orderNumber !== "string" || typeof status !== "string" || typeof createdAt !== "string") {
+                                return null
+                            }
+                            return {
+                                id,
+                                orderNumber,
+                                status,
+                                totalPrice: typeof totalPrice === "number" || typeof totalPrice === "string" ? totalPrice : "0",
+                                createdAt,
+                                deliveryMethod: typeof deliveryMethod === "string" ? deliveryMethod : null,
+                                requestedDeliveryDate: typeof requestedDeliveryDate === "string" ? requestedDeliveryDate : null,
+                            } satisfies UserOrder
+                        })
+                        .filter((o): o is UserOrder => o !== null)
+                )
+            }
+        } catch {
+            setOrders([])
+        } finally {
+            setOrdersLoading(false)
+        }
+    }
+
+    const statusVariant = (status: string) => {
+        switch (status) {
+            case "PENDING":
+                return "secondary" as const
+            case "CONFIRMED":
+            case "READY":
+                return "default" as const
+            case "COMPLETED":
+                return "outline" as const
+            case "CANCELLED":
+                return "destructive" as const
+            default:
+                return "secondary" as const
+        }
+    }
 
     const onProfileSubmit = async (values: ProfileFormValues) => {
         try {
@@ -506,20 +589,82 @@ export default function ProfilePage() {
                     </TabsContent>
 
                     <TabsContent value="orders">
-                        {/* Zde tvůj obsah pro orders z původního souboru */}
                         <Card>
                             <CardHeader>
                                 <CardTitle>Historie objednávek</CardTitle>
-                                <CardDescription>Zde uvidíte své minulé nákupy.</CardDescription>
+                                                                <CardDescription>Zde uvidíte své objednávky a jejich stav.</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <div className="flex flex-col items-center justify-center py-10 text-center space-y-4 text-muted-foreground">
-                                    <Package className="h-16 w-16 opacity-20" />
-                                    <p>Zatím zde nemáte žádné objednávky.</p>
-                                    <Button variant="outline" onClick={() => router.push("/produkty")}>
-                                        Jít nakupovat
-                                    </Button>
-                                </div>
+                                                                {ordersLoading ? (
+                                                                    <div className="flex items-center justify-center py-10 text-muted-foreground">
+                                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Načítám objednávky…
+                                                                    </div>
+                                                                ) : orders.length === 0 ? (
+                                                                    <div className="flex flex-col items-center justify-center py-10 text-center space-y-4 text-muted-foreground">
+                                                                            <Package className="h-16 w-16 opacity-20" />
+                                                                            <p>Zatím zde nemáte žádné objednávky.</p>
+                                                                            <Button variant="outline" onClick={() => router.push("/produkty")}>
+                                                                                    Jít nakupovat
+                                                                            </Button>
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="border rounded-md overflow-hidden">
+                                                                        <Table>
+                                                                            <TableHeader>
+                                                                                <TableRow>
+                                                                                    <TableHead>Číslo</TableHead>
+                                                                                    <TableHead>Stav</TableHead>
+                                                                                    <TableHead>Typ</TableHead>
+                                                                                    <TableHead>Na den</TableHead>
+                                                                                    <TableHead className="text-right">Cena</TableHead>
+                                                                                    <TableHead className="text-right">Akce</TableHead>
+                                                                                </TableRow>
+                                                                            </TableHeader>
+                                                                            <TableBody>
+                                                                                {orders.map((o) => {
+                                                                                    const created = new Date(o.createdAt)
+                                                                                    const requested = o.requestedDeliveryDate ? new Date(o.requestedDeliveryDate) : null
+                                                                                    return (
+                                                                                        <TableRow key={o.id}>
+                                                                                            <TableCell className="font-medium">{o.orderNumber}</TableCell>
+                                                                                            <TableCell>
+                                                                                                <Badge variant={statusVariant(o.status)}>{o.status}</Badge>
+                                                                                            </TableCell>
+                                                                                            <TableCell className="text-sm text-muted-foreground">
+                                                                                                {o.deliveryMethod === "PICKUP" ? "Odběr" : "Doručení"}
+                                                                                            </TableCell>
+                                                                                            <TableCell className="text-sm">
+                                                                                                {requested ? requested.toLocaleDateString("cs-CZ") : created.toLocaleDateString("cs-CZ")}
+                                                                                            </TableCell>
+                                                                                            <TableCell className="text-right">{Number(o.totalPrice)} Kč</TableCell>
+                                                                                            <TableCell className="text-right">
+                                                                                                {o.status === "PENDING" ? (
+                                                                                                    <Button
+                                                                                                        size="sm"
+                                                                                                        variant="destructive"
+                                                                                                        onClick={async () => {
+                                                                                                            try {
+                                                                                                                await cancelOrder(o.id)
+                                                                                                                toast.success("Zrušeno", "Objednávka byla zrušena.")
+                                                                                                                await fetchOrders()
+                                                                                                            } catch {
+                                                                                                                toast.error("Chyba", "Objednávku se nepodařilo zrušit.")
+                                                                                                            }
+                                                                                                        }}
+                                                                                                    >
+                                                                                                        Zrušit
+                                                                                                    </Button>
+                                                                                                ) : (
+                                                                                                    <span className="text-sm text-muted-foreground">—</span>
+                                                                                                )}
+                                                                                            </TableCell>
+                                                                                        </TableRow>
+                                                                                    )
+                                                                                })}
+                                                                            </TableBody>
+                                                                        </Table>
+                                                                    </div>
+                                                                )}
                             </CardContent>
                         </Card>
                     </TabsContent>

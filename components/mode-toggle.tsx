@@ -26,7 +26,6 @@ export function ModeToggle() {
     const isDark = theme === "dark"
     const nextTheme = isDark ? "light" : "dark"
 
-    // 1. Kontrola podpory View Transitions API (moderní prohlížeče)
     const startViewTransition = (document as unknown as DocumentWithViewTransition)
       .startViewTransition
 
@@ -35,7 +34,6 @@ export function ModeToggle() {
       return
     }
 
-    // 2. Získání souřadnic kliknutí pro střed kruhu
     const x = e.clientX
     const y = e.clientY
     const endRadius = Math.hypot(
@@ -43,19 +41,16 @@ export function ModeToggle() {
       Math.max(y, innerHeight - y)
     )
 
-    // 3. Spuštění přechodu
     const transition = startViewTransition(() => {
       setTheme(nextTheme)
     })
 
-    // 4. Animace kruhu
     transition.ready.then(() => {
       const clipPath = [
         `circle(0px at ${x}px ${y}px)`,
         `circle(${endRadius}px at ${x}px ${y}px)`,
       ]
 
-      // Animate nového pohledu (ten, který přichází)
       document.documentElement.animate(
         {
           clipPath: clipPath,
@@ -63,7 +58,6 @@ export function ModeToggle() {
         {
           duration: 500,
           easing: "ease-in-out",
-          // Animujeme pseudo-element ::view-transition-new(root)
           pseudoElement: "::view-transition-new(root)",
         }
       )

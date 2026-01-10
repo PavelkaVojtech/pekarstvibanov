@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Menu, ShoppingCart, User, LogOut } from "lucide-react"
 import { FaBreadSlice } from "react-icons/fa"
 import { authClient } from "@/lib/auth-client"
-import { useCart } from "@/components/providers/cart-provider" // NOVÝ IMPORT
+import { useCart } from "@/components/providers/cart-provider"
 
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
@@ -21,7 +21,7 @@ export function SiteHeader() {
 
   const router = useRouter()
   const { data: session, isPending } = authClient.useSession()
-  const { itemCount } = useCart() // Získání počtu položek
+  const { itemCount } = useCart()
 
   const handleLogout = async () => {
     try {
@@ -35,7 +35,6 @@ export function SiteHeader() {
     <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60 transition-colors duration-300">
       <div className="container flex h-16 max-w-screen-2xl items-center justify-between px-4 mx-auto">
         
-        {/* 1. MOBILNÍ MENU */}
         <div className="flex items-center md:hidden">
           <Sheet>
             <SheetTrigger asChild>
@@ -59,7 +58,6 @@ export function SiteHeader() {
                   </Link>
                 ))}
                 
-                {/* Odkaz na košík v mobilním menu */}
                 <Link href="/pokladna" className="flex items-center justify-between px-2 py-2 text-lg font-medium text-foreground/80 hover:text-primary">
                     <span>Košík</span>
                     {itemCount > 0 && (
@@ -96,7 +94,6 @@ export function SiteHeader() {
           </Sheet>
         </div>
 
-        {/* 2. LOGO A DESKTOP NAVIGACE */}
         <div className="flex items-center gap-6 md:gap-10">
           <Link href="/" className="flex items-center space-x-2 group">
             <FaBreadSlice className="h-6 w-6 text-primary group-hover:text-primary/80 transition-colors" />
@@ -113,12 +110,10 @@ export function SiteHeader() {
           </nav>
         </div>
 
-        {/* 3. PRAVÁ STRANA */}
         <div className="flex flex-1 items-center justify-end space-x-2">
           <nav className="flex items-center space-x-1 md:space-x-2">
             <div className="hidden md:block"><ModeToggle /></div>
 
-            {/* KOŠÍK - ODKAZ NA POKLADNU */}
             <Button asChild variant="ghost" size="icon" className="relative text-foreground hover:text-primary hover:bg-accent" aria-label="Košík">
               <Link href="/pokladna">
                 <ShoppingCart className="h-5 w-5" />

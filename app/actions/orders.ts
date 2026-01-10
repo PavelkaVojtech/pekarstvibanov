@@ -6,31 +6,127 @@ import { headers } from "next/headers"
 import { z } from "zod"
 import { sendEmail } from "@/lib/email"
 import { getOrderStatusEmailContent } from "../../lib/order-status-email"
-import { OrderStatus, OrderType, PaymentType, Prisma } from "@prisma/client"
-import { randomUUID } from "crypto"
+import { Prisma } from "@prisma/client"
 
-const CreateOrderSchema = z.object({
-  items: z.array(z.object({
-    productId: z.string(),
-    quantity: z.number().min(1)
-  })).min(1),
-  deliveryAddress: z.object({
-    street: z.string().min(1),
-    city: z.string().min(1),
-    zip: z.string().min(1),
-  }),
-  paymentType: z.nativeEnum(PaymentType),
-  orderType: z.nativeEnum(OrderType),
-  recurrence: z.string().optional(),
-  note: z.string().optional(),
-})
+const ORDER_STATUSES = [
+  "PENDING",
+  "CONFIRMED",
+  "BAKING",
+  "READY",
+  "COMPLETED",
+  "CANCELLED",
+] as const
+
+const ORDER_TYPES = ["ONE_TIME", "RECURRING"] as const
+const PAYMENT_TYPES = ["CASH_ON_DELIVERY", "ONLINE_CARD", "INVOICE"] as const
+const DELIVERY_METHODS = ["DELIVERY", "PICKUP"] as const
+
+type CreateOrderInput = {
+  items: Array<{ productId: string; quantity: number }>
+  deliveryMethod: (typeof DELIVERY_METHODS)[number]
+  requestedDeliveryDate: string
+  deliveryAddress?: { street: string; city: string; zip: string }
+  paymentType: (typeof PAYMENT_TYPES)[number]
+  orderType: (typeof ORDER_TYPES)[number]
+  recurrence?: string
+  note?: string
+}
+
+let createOrderSchema: z.ZodType<CreateOrderInput> | null = null
+
+function getCreateOrderSchema() {
+  if (createOrderSchema) return createOrderSchema
+
+  createOrderSchema = z
+    .object({
+      items: z
+        .array(
+          z.object({
+            productId: z.string(),
+            quantity: z.number().min(1),
+          })
+        )
+        .min(1),
+      deliveryMethod: z.enum(DELIVERY_METHODS),
+      requestedDeliveryDate: z.string().min(1),
+      deliveryAddress: z
+        .object({
+          street: z.string().min(1),
+          city: z.string().min(1),
+          zip: z.string().min(1),
+        })
+        .optional(),
+      paymentType: z.enum(PAYMENT_TYPES),
+      orderType: z.enum(ORDER_TYPES),
+      recurrence: z.string().optional(),
+      note: z.string().optional(),
+    })
+    .superRefine((data, ctx) => {
+      if (data.deliveryMethod === "DELIVERY") {
+        if (!data.deliveryAddress) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "Pro doručení na adresu je nutné vyplnit doručovací údaje.",
+            path: ["deliveryAddress"],
+          })
+        }
+      }
+    })
+
+  return createOrderSchema
+}
+
+function parseLocalDateOnly(dateStr: string) {
+  // Accepts YYYY-MM-DD and creates a Date at local midnight.
+  const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(dateStr)
+  if (!match) throw new Error("Neplatné datum")
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const d = new Date(year, month - 1, day, 0, 0, 0, 0)
+  if (Number.isNaN(d.getTime())) throw new Error("Neplatné datum")
+  return d
+}
+
+function assertDeliveryCutoff(requestedDateLocal: Date) {
+  const now = new Date()
+
+  // Cutoff is 15:00 the previous day (local time).
+  const cutoff = new Date(
+    requestedDateLocal.getFullYear(),
+    requestedDateLocal.getMonth(),
+    requestedDateLocal.getDate() - 1,
+    15,
+    0,
+    0,
+    0
+  )
+
+  if (now.getTime() > cutoff.getTime()) {
+    throw new Error("Objednávku na zvolený den lze vytvořit nejpozději do 15:00 předchozího dne.")
+  }
+}
 
 
 export async function createOrder(rawData: unknown) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) throw new Error("Musíte být přihlášen.")
 
-  const validated = CreateOrderSchema.parse(rawData)
+  const validated = getCreateOrderSchema().parse(rawData)
+
+  const requestedDate = parseLocalDateOnly(validated.requestedDeliveryDate)
+  assertDeliveryCutoff(requestedDate)
+
+  const pickupSnapshot = {
+    street: "Osobní odběr (prodejna)",
+    city: "Pekařství",
+    zip: "00000",
+  }
+
+  const address = validated.deliveryMethod === "DELIVERY" ? validated.deliveryAddress : pickupSnapshot
+  if (!address) {
+    throw new Error("Chybí doručovací adresa")
+  }
 
   if (validated.paymentType === "INVOICE") {
     const user = await prisma.user.findUnique({
@@ -73,19 +169,23 @@ export async function createOrder(rawData: unknown) {
   }
 
   // Vytvoření objednávky
+  const { randomUUID } = await import("crypto")
+
   const order = await prisma.order.create({
     data: {
       userId: session.user.id,
       orderNumber: `OBJ-${randomUUID()}`,
-      status: OrderStatus.PENDING,
+      status: "PENDING",
       type: validated.orderType,
       paymentType: validated.paymentType,
+      deliveryMethod: validated.deliveryMethod,
+      requestedDeliveryDate: requestedDate,
       recurrence: validated.recurrence,
       totalPrice: totalPrice,
       note: validated.note,
-      deliveryStreet: validated.deliveryAddress.street,
-      deliveryCity: validated.deliveryAddress.city,
-      deliveryZip: validated.deliveryAddress.zip,
+      deliveryStreet: address.street,
+      deliveryCity: address.city,
+      deliveryZip: address.zip,
       items: {
         create: orderItemsData
       }
@@ -134,7 +234,7 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
   
   if (!order) throw new Error("Objednávka nenalezena")
 
-  const status = z.nativeEnum(OrderStatus).parse(newStatus)
+  const status = z.enum(ORDER_STATUSES).parse(newStatus)
 
   await prisma.order.update({
     where: { id: orderId },

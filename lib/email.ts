@@ -6,7 +6,6 @@ interface EmailPayload {
 }
 
 export async function sendEmail({ to, subject, text }: EmailPayload) {
-  //await resend.emails.send({ ... })
   
   console.log(`📨 [MOCK EMAIL] To: ${to} | Subject: ${subject}`);
   console.log(`Content: ${text}`);

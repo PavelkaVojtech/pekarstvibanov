@@ -1,8 +1,17 @@
 import { StatsCard } from "./dashboard/stats-card"
 import { ShoppingBag, Users, TrendingUp, DollarSign } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { prisma } from "@/lib/db"
 
-export default function AdminDashboard() {
+export default async function AdminDashboard() {
+  const pendingCount = await prisma.order.count({ where: { status: "PENDING" } })
+  const recentPending = await prisma.order.findMany({
+    where: { status: "PENDING" },
+    orderBy: { createdAt: "desc" },
+    take: 5,
+    select: { id: true, orderNumber: true, createdAt: true, totalPrice: true },
+  })
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between space-y-2">
@@ -18,8 +27,8 @@ export default function AdminDashboard() {
         />
         <StatsCard 
             title="Nové objednávky" 
-            value="0" 
-            description="Čeká na vyřízení" 
+          value={pendingCount} 
+          description="Čeká na schválení" 
             icon={ShoppingBag} 
         />
         <StatsCard 
@@ -36,14 +45,27 @@ export default function AdminDashboard() {
         />
       </div>
       
-      {/* Sekce pro grafy nebo tabulky - zatím placeholder */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
         <Card className="col-span-4">
             <CardHeader>
                 <CardTitle>Nedávné objednávky</CardTitle>
             </CardHeader>
             <CardContent>
-                <p className="text-sm text-muted-foreground">Zatím žádné objednávky.</p>
+                {recentPending.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">Zatím žádné objednávky.</p>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-muted-foreground">Čekají na schválení:</p>
+                    <div className="space-y-1">
+                      {recentPending.map((o) => (
+                        <div key={o.id} className="flex items-center justify-between text-sm">
+                          <span className="font-medium">{o.orderNumber}</span>
+                          <span className="text-muted-foreground">{o.createdAt.toLocaleDateString("cs-CZ")} • {Number(o.totalPrice)} Kč</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
             </CardContent>
         </Card>
       </div>

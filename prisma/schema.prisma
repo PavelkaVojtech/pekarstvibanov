@@ -103,6 +103,10 @@ model Order {
   status      OrderStatus   @default(PENDING)
   type        OrderType     @default(ONE_TIME)
   paymentType PaymentType   @default(CASH_ON_DELIVERY)
+
+  // Doručení / vyzvednutí a požadovaný den
+  deliveryMethod DeliveryMethod @default(DELIVERY)
+  requestedDeliveryDate DateTime?
   
   // Pravidelnost (např. "weekly", "daily") - vyplněno jen pokud type == RECURRING
   recurrence  String?
@@ -159,6 +163,11 @@ enum PaymentType {
   CASH_ON_DELIVERY  // Hotově/Karta na místě
   ONLINE_CARD       // Online platba
   INVOICE           // Na fakturu (souhrnná)
+}
+
+enum DeliveryMethod {
+  DELIVERY
+  PICKUP
 }
 
 // --- BETTER AUTH ---

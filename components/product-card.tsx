@@ -2,7 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import type { Product } from "@prisma/client"
-import { AddToCart } from "@/components/add-to-cart" // NOVÝ IMPORT
+import { AddToCart } from "@/components/add-to-cart"
 
 interface ProductCardProps {
   product: Product
@@ -47,7 +47,6 @@ export function ProductCard({ product }: ProductCardProps) {
                 {Number(product.price).toFixed(0)} Kč
             </span>
             
-            {/* OŽIVENÉ TLAČÍTKO */}
             <div className="relative z-30">
                <AddToCart 
                  product={{

@@ -1,7 +1,8 @@
 "use client"
 
-import React, { createContext, useContext, useSyncExternalStore } from "react"
+import React, { createContext, useContext, useSyncExternalStore, useEffect, useMemo, useRef, useState } from "react"
 import { useToast } from "@/components/ui/use-toast"
+import { authClient } from "@/lib/auth-client"
 
 export type CartItem = {
   productId: string
@@ -15,6 +16,8 @@ type CartContextType = {
   items: CartItem[]
   addItem: (item: CartItem) => void
   removeItem: (productId: string) => void
+  setItemQuantity: (productId: string, quantity: number) => void
+  incrementItem: (productId: string, delta?: number) => void
   clearCart: () => void
   totalPrice: number
   itemCount: number
@@ -22,42 +25,56 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | undefined>(undefined)
 
-const CART_STORAGE_KEY = "cart"
+const GUEST_CART_STORAGE_KEY = "cart"
 const CART_UPDATED_EVENT = "cart:updated"
 
 const EMPTY_CART: CartItem[] = []
 
-let cachedCartString: string | null = null
-let cachedCartItems: CartItem[] = EMPTY_CART
+const cartCache = new Map<string, { cartString: string | null; items: CartItem[] }>()
 
-function readCartFromStorage(): CartItem[] {
+function getUserCartStorageKey(userId: string) {
+  return `cart:user:${userId}`
+}
+
+function getCached(key: string) {
+  const existing = cartCache.get(key)
+  if (existing) return existing
+  const init = { cartString: null as string | null, items: EMPTY_CART }
+  cartCache.set(key, init)
+  return init
+}
+
+function readCartFromStorage(key: string): CartItem[] {
   if (typeof window === "undefined") return []
-  const saved = window.localStorage.getItem(CART_STORAGE_KEY)
+  const saved = window.localStorage.getItem(key)
 
-  if (saved === cachedCartString) return cachedCartItems
+  const cached = getCached(key)
 
-  cachedCartString = saved
+  if (saved === cached.cartString) return cached.items
+
+  cached.cartString = saved
 
   if (!saved) {
-    cachedCartItems = EMPTY_CART
-    return cachedCartItems
+    cached.items = EMPTY_CART
+    return cached.items
   }
 
   try {
     const parsed = JSON.parse(saved)
-    cachedCartItems = Array.isArray(parsed) ? (parsed as CartItem[]) : EMPTY_CART
-    return cachedCartItems
+    cached.items = Array.isArray(parsed) ? (parsed as CartItem[]) : EMPTY_CART
+    return cached.items
   } catch {
-    cachedCartItems = EMPTY_CART
-    return cachedCartItems
+    cached.items = EMPTY_CART
+    return cached.items
   }
 }
 
-function writeCartToStorage(items: CartItem[]) {
+function writeCartToStorage(key: string, items: CartItem[]) {
   if (typeof window === "undefined") return
-  cachedCartItems = items
-  cachedCartString = JSON.stringify(items)
-  window.localStorage.setItem(CART_STORAGE_KEY, cachedCartString)
+  const cached = getCached(key)
+  cached.items = items
+  cached.cartString = JSON.stringify(items)
+  window.localStorage.setItem(key, cached.cartString)
 
   const count = items.reduce((sum, item) => sum + item.quantity, 0)
   document.cookie = `cart_count=${count}; path=/; max-age=31536000; samesite=lax`
@@ -65,11 +82,11 @@ function writeCartToStorage(items: CartItem[]) {
   window.dispatchEvent(new Event(CART_UPDATED_EVENT))
 }
 
-function subscribeToCartStore(callback: () => void) {
+function subscribeToCartStore(key: string, callback: () => void) {
   if (typeof window === "undefined") return () => {}
 
   const onStorage = (e: StorageEvent) => {
-    if (e.key === CART_STORAGE_KEY) callback()
+    if (e.key === key) callback()
   }
 
   const onUpdated = () => callback()
@@ -90,11 +107,69 @@ export function CartProvider({
   children: React.ReactNode
   initialItemCount?: number
 }) {
+  const [isMounted, setIsMounted] = useState(false)
   const { toast } = useToast()
-  const items = useSyncExternalStore(subscribeToCartStore, readCartFromStorage, () => EMPTY_CART)
+  const { data: session } = authClient.useSession()
+
+  const userId = session?.user?.id
+  const storageKey = useMemo(() => {
+    if (userId) return getUserCartStorageKey(userId)
+    return GUEST_CART_STORAGE_KEY
+  }, [userId])
+
+  const previousUserId = useRef<string | null>(null)
+  
+  const items = useSyncExternalStore(
+    (callback) => subscribeToCartStore(storageKey, callback),
+    () => readCartFromStorage(storageKey),
+    () => EMPTY_CART
+  )
+
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    const prev = previousUserId.current
+
+    if (!prev && userId) {
+      const guestItems = readCartFromStorage(GUEST_CART_STORAGE_KEY)
+      if (guestItems.length > 0) {
+        const userKey = getUserCartStorageKey(userId)
+        const userItems = readCartFromStorage(userKey)
+
+        const merged = new Map<string, CartItem>()
+        for (const item of userItems) merged.set(item.productId, item)
+        for (const item of guestItems) {
+          const existing = merged.get(item.productId)
+          merged.set(
+            item.productId,
+            existing
+              ? { ...existing, quantity: existing.quantity + item.quantity }
+              : item
+          )
+        }
+
+        writeCartToStorage(userKey, Array.from(merged.values()))
+        writeCartToStorage(GUEST_CART_STORAGE_KEY, [])
+      } else {
+        const userKey = getUserCartStorageKey(userId)
+        const userItems = readCartFromStorage(userKey)
+        const count = userItems.reduce((sum, i) => sum + i.quantity, 0)
+        document.cookie = `cart_count=${count}; path=/; max-age=31536000; samesite=lax`
+        window.dispatchEvent(new Event(CART_UPDATED_EVENT))
+      }
+    }
+
+    if (prev && !userId) {
+      writeCartToStorage(GUEST_CART_STORAGE_KEY, [])
+    }
+
+    previousUserId.current = userId ?? null
+  }, [userId])
 
   const addItem = (newItem: CartItem) => {
-    const current = readCartFromStorage()
+    const current = readCartFromStorage(storageKey)
     const existing = current.find((i) => i.productId === newItem.productId)
     const next = existing
       ? current.map((i) =>
@@ -104,23 +179,55 @@ export function CartProvider({
         )
       : [...current, newItem]
 
-    writeCartToStorage(next)
+    writeCartToStorage(storageKey, next)
     toast({ title: "Přidáno do košíku", description: `${newItem.name} (${newItem.quantity}ks)` })
   }
 
   const removeItem = (productId: string) => {
-    const current = readCartFromStorage()
-    writeCartToStorage(current.filter((i) => i.productId !== productId))
+    const current = readCartFromStorage(storageKey)
+    writeCartToStorage(storageKey, current.filter((i) => i.productId !== productId))
   }
 
-  const clearCart = () => writeCartToStorage([])
+  const setItemQuantity = (productId: string, quantity: number) => {
+    const current = readCartFromStorage(storageKey)
+    const safeQuantity = Number.isFinite(quantity) ? Math.floor(quantity) : 0
+
+    if (safeQuantity <= 0) {
+      writeCartToStorage(storageKey, current.filter((i) => i.productId !== productId))
+      return
+    }
+
+    const next = current.map((i) => (i.productId === productId ? { ...i, quantity: safeQuantity } : i))
+    writeCartToStorage(storageKey, next)
+  }
+
+  const incrementItem = (productId: string, delta: number = 1) => {
+    const current = readCartFromStorage(storageKey)
+    const item = current.find((i) => i.productId === productId)
+    if (!item) return
+    setItemQuantity(productId, item.quantity + delta)
+  }
+
+  const clearCart = () => writeCartToStorage(storageKey, [])
 
   const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const derivedItemCount = items.reduce((sum, item) => sum + item.quantity, 0)
-  const itemCount = typeof window === "undefined" ? initialItemCount : derivedItemCount
+  
+  const itemCount = isMounted ? derivedItemCount : initialItemCount
 
   return (
-    <CartContext.Provider value={{ items, addItem, removeItem, clearCart, totalPrice, itemCount }}>
+    <CartContext.Provider
+      value={{
+        items,
+        addItem,
+        removeItem,
+        setItemQuantity,
+        incrementItem,
+        clearCart,
+        totalPrice,
+        itemCount,
+      }}
+    >
       {children}
     </CartContext.Provider>
   )

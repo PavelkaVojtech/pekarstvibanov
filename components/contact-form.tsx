@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Send } from "lucide-react"
-import { authClient } from "@/lib/auth-client" // 1. Import autentizačního klienta
+import { authClient } from "@/lib/auth-client"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -32,7 +32,6 @@ const formSchema = z.object({
 })
 
 export function ContactForm() {
-  // 2. Získání session (přihlášeného uživatele)
   const { data: session } = authClient.useSession()
   
   const [isSubmitting, setIsSubmitting] = React.useState(false)
@@ -47,14 +46,11 @@ export function ContactForm() {
     },
   })
 
-  // 3. Efekt pro předvyplnění údajů, jakmile se načte session
   React.useEffect(() => {
     if (session?.user) {
-      // Získáme aktuální hodnoty, abychom nepřepsali něco, co už uživatel mohl napsat ručně
       const currentName = form.getValues("name")
       const currentEmail = form.getValues("email")
 
-      // Pokud jsou pole prázdná, vyplníme je daty z profilu
       if (!currentName && session.user.name) {
         form.setValue("name", session.user.name)
       }
@@ -75,7 +71,6 @@ export function ContactForm() {
       setSuccess(true)
       form.reset()
       
-      // Po resetu formuláře můžeme znovu předvyplnit údaje, pokud je uživatel stále přihlášen
       if (session?.user) {
         form.setValue("name", session.user.name)
         form.setValue("email", session.user.email)

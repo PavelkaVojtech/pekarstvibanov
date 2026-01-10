@@ -18,7 +18,7 @@ export async function GET(req: Request) {
   if (!session) return NextResponse.json({ error: "Neautorizováno" }, { status: 401 });
 
   const addresses = await prisma.address.findMany({
-    where: { userId: session.user.id },
+    where: { userId: session.user.id, type: "DELIVERY" },
     orderBy: { id: 'desc' }
   });
 

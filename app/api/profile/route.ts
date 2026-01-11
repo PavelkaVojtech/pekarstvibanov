@@ -4,9 +4,6 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
-// ... (tvoje profileSchema a PUT metoda zůstávají stejné) ...
-
-// --- NOVÁ ČÁST: NAČTENÍ PROFILU ---
 export async function GET(req: Request) {
   try {
     const session = await auth.api.getSession({
@@ -41,9 +38,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Chyba serveru" }, { status: 500 });
   }
 }
-
-// ... (zbytek souboru s PUT metodou, nezapomeň ji tam nechat!) ...
-// Pro jistotu sem dávám celý obsah souboru, abys to mohl jen zkopírovat:
 
 const profileSchema = z.object({
   name: z.string().min(2, "Jméno musí mít alespoň 2 znaky"),

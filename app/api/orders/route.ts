@@ -23,6 +23,9 @@ export async function GET() {
       createdAt: o.createdAt,
       deliveryMethod: o.deliveryMethod,
       requestedDeliveryDate: o.requestedDeliveryDate,
+      paymentType: o.paymentType,
+      orderType: o.type,
+      recurrence: o.recurrence,
     }))
   )
 }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Checkbox } from "@/components/ui/checkbox" // ZMĚNA: Import Checkboxu
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Select,
   SelectContent,
@@ -80,7 +80,6 @@ export function ProductForm({ categories }: ProductFormProps) {
             <SelectTrigger className="bg-background">
               <SelectValue placeholder="Vyberte kategorii" />
             </SelectTrigger>
-            {/* ZMĚNA: Přidána třída bg-background (bílá/černá) a border pro viditelnost */}
             <SelectContent className="bg-background border border-border shadow-xl z-50">
               {categories.map((cat) => {
                 if (!cat.id) return null;
@@ -95,7 +94,6 @@ export function ProductForm({ categories }: ProductFormProps) {
         </div>
       </div>
 
-      {/* ZMĚNA: Input type="file" */}
       <div className="space-y-2">
         <Label htmlFor="image">Obrázek</Label>
         <Input 
@@ -106,11 +104,10 @@ export function ProductForm({ categories }: ProductFormProps) {
           className="cursor-pointer bg-background"
         />
         <p className="text-xs text-muted-foreground">
-          Zatím se obrázek neukládá (připraveno pro budoucí nahrávání).
+          Obrázek se aktuálně neukládá.
         </p>
       </div>
 
-      {/* ZMĚNA: Checkbox místo Switch */}
       <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm bg-background">
         <Checkbox id="isAvailable" name="isAvailable" defaultChecked value="on" />
         <div className="space-y-1 leading-none">

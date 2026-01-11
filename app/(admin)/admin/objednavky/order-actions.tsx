@@ -11,11 +11,23 @@ export function OrderActions({ orderId, currentStatus }: { orderId: string, curr
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
 
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "PENDING": return "Čeká na schválení"
+      case "CONFIRMED": return "Schváleno"
+      case "BAKING": return "Ve výrobě"
+      case "READY": return "Připraveno"
+      case "COMPLETED": return "Dokončeno"
+      case "CANCELLED": return "Zrušeno"
+      default: return status
+    }
+  }
+
   const changeStatus = async (status: string) => {
     setLoading(true)
     try {
       await updateOrderStatus(orderId, status)
-      toast({ title: "Stav změněn", description: `Objednávka je nyní ${status}` })
+      toast({ title: "Stav změněn", description: `Objednávka je nyní: ${getStatusLabel(status)}` })
       router.refresh() 
     } catch (e) {
       toast({ variant: "destructive", title: "Chyba", description: "Nepodařilo se změnit stav" })
@@ -39,8 +51,24 @@ export function OrderActions({ orderId, currentStatus }: { orderId: string, curr
 
   if (currentStatus === "CONFIRMED") {
     return (
+      <Button size="sm" variant="outline" onClick={() => changeStatus("BAKING")} disabled={loading}>
+        Začít výrobu
+      </Button>
+    )
+  }
+
+  if (currentStatus === "BAKING") {
+    return (
       <Button size="sm" variant="outline" onClick={() => changeStatus("READY")} disabled={loading}>
-        Připraveno
+        Označit jako připravené
+      </Button>
+    )
+  }
+
+  if (currentStatus === "READY") {
+    return (
+      <Button size="sm" variant="outline" onClick={() => changeStatus("COMPLETED")} disabled={loading}>
+        Dokončit
       </Button>
     )
   }

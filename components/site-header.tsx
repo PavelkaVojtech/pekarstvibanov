@@ -23,6 +23,8 @@ export function SiteHeader() {
   const { data: session, isPending } = authClient.useSession()
   const { itemCount } = useCart()
 
+  const profileHref = session?.user?.role === "ADMIN" ? "/admin" : "/profil"
+
   const handleLogout = async () => {
     try {
       await authClient.signOut()
@@ -75,7 +77,7 @@ export function SiteHeader() {
                   
                   {session ? (
                     <div className="px-2 space-y-3">
-                        <Link href="/profil" className="flex items-center gap-2 text-primary font-bold hover:underline">
+                      <Link href={profileHref} className="flex items-center gap-2 text-primary font-bold hover:underline">
                             <User className="h-5 w-5" />
                             <span>{session.user.name}</span>
                         </Link>
@@ -129,7 +131,7 @@ export function SiteHeader() {
                 session ? (
                     <div className="hidden sm:flex items-center gap-2 pl-2">
                         <Button asChild variant="ghost" className="text-foreground hover:text-primary font-bold px-2">
-                            <Link href="/profil" className="flex items-center gap-2">
+                      <Link href={profileHref} className="flex items-center gap-2">
                                 <User className="h-4 w-4" />
                                 <span className="truncate max-w-[150px]">{session.user.name}</span>
                             </Link>

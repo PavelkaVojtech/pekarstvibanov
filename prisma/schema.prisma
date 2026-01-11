@@ -101,6 +101,11 @@ model Order {
   
   // Stavy a nastavení
   status      OrderStatus   @default(PENDING)
+  confirmedAt DateTime?
+  bakingAt    DateTime?
+  readyAt     DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
   type        OrderType     @default(ONE_TIME)
   paymentType PaymentType   @default(CASH_ON_DELIVERY)
 
@@ -118,10 +123,10 @@ model Order {
   billingInvoiced Boolean @default(false) // Zda už byla objednávka zahrnuta do souhrnné faktury
 
   // SNAPSHOT ADRESY (Uloženo natvrdo pro historii)
-  deliveryStreet  String
-  deliveryCity    String
-  deliveryZip     String
-  deliveryCountry String @default("Česká republika")
+  deliveryStreet  String?
+  deliveryCity    String?
+  deliveryZip     String?
+  deliveryCountry String? @default("Česká republika")
 
   user        User        @relation(fields: [userId], references: [id])
   items       OrderItem[]

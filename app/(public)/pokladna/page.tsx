@@ -148,10 +148,11 @@ export default function CheckoutPage() {
     }
 
     try {
-      await createOrder(orderData)
+      const result = await createOrder(orderData)
       clearCart()
-      toast({ title: "Objednávka odeslána!", description: "Brzy se vám ozveme." })
-      router.push("/profil") // Nebo na stránku s poděkováním
+      toast({ title: "Objednávka odeslána!", description: "Ozveme se vám co nejdříve." })
+      const orderId = result && typeof result === "object" && "orderId" in result ? String((result as Record<string, unknown>).orderId) : ""
+      router.push(orderId ? `/dekujeme?orderId=${encodeURIComponent(orderId)}` : "/dekujeme")
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Nepodařilo se odeslat objednávku."
       toast({ variant: "destructive", title: "Chyba", description: message })
@@ -470,6 +471,14 @@ export default function CheckoutPage() {
                   <span className="space-y-1">
                     <span className="font-medium">Na fakturu (Firmy)</span>
                     <span className="block text-sm text-muted-foreground">Dostupné pro firemní zákazníky s údaji.</span>
+                  </span>
+                </label>
+
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-accent/40">
+                  <RadioGroupItem value="ONLINE_CARD" id="pay-card" className="mt-1" />
+                  <span className="space-y-1">
+                    <span className="font-medium">Online kartou</span>
+                    <span className="block text-sm text-muted-foreground">Momentálně nedostupné.</span>
                   </span>
                 </label>
               </RadioGroup>

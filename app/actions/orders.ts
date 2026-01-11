@@ -117,16 +117,20 @@ export async function createOrder(rawData: unknown) {
   const requestedDate = parseLocalDateOnly(validated.requestedDeliveryDate)
   assertDeliveryCutoff(requestedDate)
 
-  const pickupSnapshot = {
-    street: "Osobní odběr (prodejna)",
-    city: "Pekařství",
-    zip: "00000",
-  }
-
-  const address = validated.deliveryMethod === "DELIVERY" ? validated.deliveryAddress : pickupSnapshot
-  if (!address) {
+  const address = validated.deliveryMethod === "DELIVERY" ? validated.deliveryAddress : undefined
+  if (validated.deliveryMethod === "DELIVERY" && !address) {
     throw new Error("Chybí doručovací adresa")
   }
+
+  // Pokud je osobní odběr a uživatel má uloženou doručovací adresu v profilu,
+  // uložíme ji jako snapshot (užitečné pro admina), ale nikdy nevymýšlíme "prodejnu/00000".
+  const fallbackAddress =
+    validated.deliveryMethod === "PICKUP"
+      ? await prisma.address.findFirst({
+          where: { userId: session.user.id, type: "DELIVERY" },
+          select: { street: true, city: true, zipCode: true, country: true },
+        })
+      : null
 
   if (validated.paymentType === "INVOICE") {
     const user = await prisma.user.findUnique({
@@ -183,9 +187,10 @@ export async function createOrder(rawData: unknown) {
       recurrence: validated.recurrence,
       totalPrice: totalPrice,
       note: validated.note,
-      deliveryStreet: address.street,
-      deliveryCity: address.city,
-      deliveryZip: address.zip,
+      deliveryStreet: address?.street ?? fallbackAddress?.street ?? null,
+      deliveryCity: address?.city ?? fallbackAddress?.city ?? null,
+      deliveryZip: address?.zip ?? fallbackAddress?.zipCode ?? null,
+      deliveryCountry: fallbackAddress?.country ?? null,
       items: {
         create: orderItemsData
       }
@@ -236,9 +241,22 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
 
   const status = z.enum(ORDER_STATUSES).parse(newStatus)
 
+  const now = new Date()
+
+  const milestoneData: Record<string, Date> = {
+    ...(status === "CONFIRMED" && !order.confirmedAt ? { confirmedAt: now } : {}),
+    ...(status === "BAKING" && !order.bakingAt ? { bakingAt: now } : {}),
+    ...(status === "READY" && !order.readyAt ? { readyAt: now } : {}),
+    ...(status === "COMPLETED" && !order.completedAt ? { completedAt: now } : {}),
+    ...(status === "CANCELLED" && !order.cancelledAt ? { cancelledAt: now } : {}),
+  }
+
   await prisma.order.update({
     where: { id: orderId },
-    data: { status }
+    data: {
+      status,
+      ...milestoneData,
+    }
   })
 
   const email = getOrderStatusEmailContent({ orderNumber: order.orderNumber, status })

@@ -4,7 +4,7 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, ShoppingBag, Users, Settings, LogOut, PackagePlus, Store } from "lucide-react"
+import { LayoutDashboard, ShoppingBag, Users, Settings, LogOut, PackagePlus, Store, User } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
 import { useRouter } from "next/navigation"
 
@@ -78,6 +78,11 @@ export function AdminSidebar() {
         {/* Oddělovač a spodní akce */}
         <div className="px-3 py-2 border-t border-border mt-auto">
             <div className="space-y-1 mt-4">
+                <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground" asChild>
+                    <Link href="/profil">
+                        <User className="mr-2 h-4 w-4" /> Můj profil
+                    </Link>
+                </Button>
                 <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground" asChild>
                     <Link href="/">
                         <Store className="mr-2 h-4 w-4" /> Zpět na web

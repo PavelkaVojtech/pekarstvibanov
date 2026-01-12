@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
-import { Package, MapPin, Settings, LogOut, Building2, Save, Plus, Trash2, Home, Loader2, Lock, List, LogIn } from "lucide-react"
+import { Package, MapPin, Settings, LogOut, Building2, Save, Plus, Trash2, Home, Loader2, Lock, List, LogIn, LayoutDashboard } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -53,6 +53,7 @@ import { cancelOrder } from "@/app/actions/orders"
 
 const profileFormSchema = z.object({
   name: z.string().min(2, "Jméno musí mít alespoň 2 znaky"),
+  email: z.string().email("Neplatný formát emailu"),
   phone: z.string().optional(),
     isCompany: z.boolean(),
   companyName: z.string().optional(),
@@ -136,10 +137,7 @@ export default function ProfilePage() {
     const ordersFetchedRef = useRef(false)
 
     useEffect(() => {
-        if (isPending) return
-        if (session?.user?.role === "ADMIN") {
-            router.replace("/admin")
-        }
+        // Admin redirection removed to allow profile editing
     }, [isPending, session, router])
   
   const [addresses, setAddresses] = useState<Address[]>([])
@@ -165,7 +163,7 @@ export default function ProfilePage() {
   // Formuláře (hooks)
     const profileForm = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema),
-    defaultValues: { name: "", phone: "", isCompany: false, companyName: "", ico: "", dic: "" },
+    defaultValues: { name: "", email: "", phone: "", isCompany: false, companyName: "", ico: "", dic: "" },
   })
 
     const addressForm = useForm<AddressFormValues>({
@@ -192,6 +190,7 @@ export default function ProfilePage() {
 
                 profileForm.reset({
                     name: userData.name || "",
+                    email: userData.email || session?.user?.email || "",
                     phone: userData.phone || "",
                     isCompany: hasCompanyData,
                     companyName: userData.companyName || "",
@@ -584,9 +583,23 @@ export default function ProfilePage() {
         }
     }
 
-    const onPasswordSubmit = async (_values: PasswordFormValues) => {
-        void _values
-        toast.error("Není dostupné", "Změna hesla není v této aplikaci podporována.")
+    const onPasswordSubmit = async (values: PasswordFormValues) => {
+        toast.info("Probíhá změna hesla...", "Prosím čekejte.")
+        
+        await authClient.changePassword({
+            newPassword: values.newPassword,
+            currentPassword: values.currentPassword,
+            revokeOtherSessions: true
+        }, {
+            onSuccess: () => {
+                toast.success("Heslo změněno", "Vaše heslo bylo úspěšně aktualizováno.")
+                passwordForm.reset()
+                setIsPasswordDialogOpen(false)
+            },
+            onError: (ctx) => {
+                toast.error("Chyba změny hesla", ctx.error.message || "Zkontrolujte své současné heslo.")
+            }
+        })
     }
   const handleDeleteAddress = async (id: string) => { setDeleteTargetId(id); setIsDeleteConfirmOpen(true); }
     const confirmDelete = async () => {
@@ -702,6 +715,13 @@ export default function ProfilePage() {
                         <CardTitle className="text-lg">{session.user.name}</CardTitle>
                         <CardDescription className="truncate">{session.user.email}</CardDescription>
                     </CardHeader>
+                    <CardContent className="pb-2">
+                        {session.user.role === "ADMIN" && (
+                            <Button variant="outline" className="w-full mb-2" onClick={() => router.push("/admin")}>
+                                <LayoutDashboard className="mr-2 h-4 w-4" /> Administrace
+                            </Button>
+                        )}
+                    </CardContent>
                     <CardFooter>
                         <Button variant="destructive" className="w-full" onClick={handleLogout}>
                             <LogOut className="mr-2 h-4 w-4" /> Odhlásit se
@@ -711,6 +731,114 @@ export default function ProfilePage() {
             </div>
 
             <div className="flex-1">
+                {session.user.role === "ADMIN" ? (
+                    <div className="space-y-6">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Přihlašovací údaje</CardTitle>
+                                <CardDescription>Zde si můžete změnit email a heslo.</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <Form {...profileForm}>
+                                    <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-4">
+                                        <FormField
+                                            control={profileForm.control}
+                                            name="email"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Email</FormLabel>
+                                                    <div className="flex gap-4">
+                                                        <FormControl>
+                                                            <Input {...field} />
+                                                        </FormControl>
+                                                        <Button type="submit" disabled={profileForm.formState.isSubmitting}>
+                                                            <Save className="mr-2 h-4 w-4" /> 
+                                                            Uložit
+                                                        </Button>
+                                                    </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                    </form>
+                                </Form>
+                                
+                                <div className="pt-4 border-t">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div>
+                                            <div className="font-medium">Heslo</div>
+                                            <div className="text-sm text-muted-foreground">Pro vyšší bezpečnost doporučujeme silné heslo.</div>
+                                        </div>
+                                        <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                                            <DialogTrigger asChild>
+                                                <Button variant="outline">Změnit heslo</Button>
+                                            </DialogTrigger>
+                                            <DialogContent>
+                                                <DialogHeader>
+                                                    <DialogTitle>Změna hesla</DialogTitle>
+                                                    <DialogDescription>
+                                                        Pro změnu hesla zadejte své současné heslo a poté nové heslo.
+                                                    </DialogDescription>
+                                                </DialogHeader>
+                                                <Form {...passwordForm}>
+                                                    <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-4 py-4">
+                                                        <FormField
+                                                            control={passwordForm.control}
+                                                            name="currentPassword"
+                                                            render={({ field }) => (
+                                                                <FormItem>
+                                                                    <FormLabel>Současné heslo</FormLabel>
+                                                                    <FormControl>
+                                                                        <Input type="password" {...field} />
+                                                                    </FormControl>
+                                                                    <FormMessage />
+                                                                </FormItem>
+                                                            )}
+                                                        />
+                                                        <div className="grid gap-4 pt-2">
+                                                            <FormField
+                                                                control={passwordForm.control}
+                                                                name="newPassword"
+                                                                render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel>Nové heslo</FormLabel>
+                                                                        <FormControl>
+                                                                            <Input type="password" {...field} />
+                                                                        </FormControl>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+                                                            <FormField
+                                                                control={passwordForm.control}
+                                                                name="confirmPassword"
+                                                                render={({ field }) => (
+                                                                    <FormItem>
+                                                                        <FormLabel>Potvrzení nového hesla</FormLabel>
+                                                                        <FormControl>
+                                                                            <Input type="password" {...field} />
+                                                                        </FormControl>
+                                                                        <FormMessage />
+                                                                    </FormItem>
+                                                                )}
+                                                            />
+                                                        </div>
+                                                        
+                                                        <DialogFooter>
+                                                            <Button type="submit" className="w-full sm:w-auto font-bold" disabled={passwordForm.formState.isSubmitting}>
+                                                                {passwordForm.formState.isSubmitting ? "Měním..." : "Změnit heslo"}
+                                                            </Button>
+                                                        </DialogFooter>
+                                                    </form>
+                                                </Form>
+                                            </DialogContent>
+                                        </Dialog>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                ) : (
                                 <Tabs
                                     defaultValue="info"
                                     className="w-full space-y-6"
@@ -743,16 +871,25 @@ export default function ProfilePage() {
                                                     <FormItem>
                                                         <FormLabel>Celé jméno</FormLabel>
                                                         <FormControl>
+                                                            <Input {...field} disabled={session.user.role === "ADMIN"} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                            <FormField
+                                                control={profileForm.control}
+                                                name="email"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Email</FormLabel>
+                                                        <FormControl>
                                                             <Input {...field} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
                                                 )}
                                             />
-                                            <div className="space-y-2">
-                                                <Label>Email</Label>
-                                                <Input value={session.user.email} disabled className="bg-muted" />
-                                            </div>
                                             <FormField
                                                 control={profileForm.control}
                                                 name="phone"
@@ -760,7 +897,7 @@ export default function ProfilePage() {
                                                     <FormItem>
                                                         <FormLabel>Telefon</FormLabel>
                                                         <FormControl>
-                                                            <Input placeholder="+420 777 888 999" {...field} />
+                                                            <Input placeholder="+420 777 888 999" {...field} disabled={session.user.role === "ADMIN"} />
                                                         </FormControl>
                                                         <FormMessage />
                                                     </FormItem>
@@ -770,6 +907,7 @@ export default function ProfilePage() {
                                     </CardContent>
                                 </Card>
 
+                                {session.user.role !== "ADMIN" && (
                                 <Card>
                                     <CardHeader>
                                         <div className="flex items-center justify-between">
@@ -838,14 +976,15 @@ export default function ProfilePage() {
                                             </div>
                                         </CardContent>
                                     )}
-                                    
-                                    <CardFooter className="border-t pt-6 flex justify-end">
-                                        <Button type="submit" disabled={profileForm.formState.isSubmitting}>
-                                            <Save className="mr-2 h-4 w-4" /> 
-                                            {profileForm.formState.isSubmitting ? "Ukládám..." : "Uložit změny"}
-                                        </Button>
-                                    </CardFooter>
                                 </Card>
+                                )}
+                                    
+                                <div className="flex justify-end pt-2">
+                                    <Button type="submit" disabled={profileForm.formState.isSubmitting}>
+                                        <Save className="mr-2 h-4 w-4" /> 
+                                        {profileForm.formState.isSubmitting ? "Ukládám..." : "Uložit změny"}
+                                    </Button>
+                                </div>
                             </form>
                         </Form>
                     </TabsContent>
@@ -1271,6 +1410,7 @@ export default function ProfilePage() {
                         </Dialog>
                     </TabsContent>
                 </Tabs>
+                )}
             </div>
         </div>
       </div>

@@ -41,6 +41,7 @@ export async function GET(req: Request) {
 
 const profileSchema = z.object({
   name: z.string().min(2, "Jméno musí mít alespoň 2 znaky"),
+  email: z.string().email("Neplatný formát emailu").optional(),
   phone: z.string().optional().or(z.literal("").or(z.null())),
   isCompany: z.boolean(),
   companyName: z.string().optional().or(z.literal("").or(z.null())),
@@ -73,12 +74,13 @@ export async function PUT(req: Request) {
         return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
     }
 
-    const { name, phone, isCompany, companyName, ico, dic } = parseResult.data;
+    const { name, email, phone, isCompany, companyName, ico, dic } = parseResult.data;
 
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: {
         name,
+        email: email || undefined,
         phone,
         companyName: isCompany ? companyName : null,
         ico: isCompany ? ico : null,

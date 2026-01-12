@@ -27,7 +27,7 @@ export function ModeToggle() {
     const nextTheme = isDark ? "light" : "dark"
 
     const startViewTransition = (document as unknown as DocumentWithViewTransition)
-      .startViewTransition
+      .startViewTransition?.bind(document)
 
     if (!startViewTransition) {
       setTheme(nextTheme)

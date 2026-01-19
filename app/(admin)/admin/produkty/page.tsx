@@ -11,13 +11,12 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2, Edit } from "lucide-react"
-import { deleteProduct } from "./actions" // Import serverové akce pro smazání
+import { Plus, Trash2 } from "lucide-react"
+import { deleteProduct } from "./actions"
 
 export const dynamic = "force-dynamic"
 
 export default async function AdminProductsPage() {
-  // Načteme produkty včetně názvu kategorie
   const products = await prisma.product.findMany({
     include: { category: true },
     orderBy: { createdAt: 'desc' }
@@ -73,7 +72,6 @@ export default async function AdminProductsPage() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
-                                        {/* Tlačítko pro smazání (Server Action ve formuláři) */}
                                         <form action={deleteProduct.bind(null, product.id)}>
                                             <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
                                                 <Trash2 className="h-4 w-4" />

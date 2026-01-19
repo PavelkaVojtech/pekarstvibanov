@@ -1,7 +1,7 @@
 "use server"
 
 import { prisma } from "@/lib/db"
-import { Role } from "@prisma/client"
+import { Role, Prisma } from "@prisma/client"
 import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { revalidatePath } from "next/cache"
@@ -16,7 +16,7 @@ export async function getUsers(query?: string) {
     return []
   }
 
-  const where: any = {}
+  const where: Prisma.UserWhereInput = {}
   
   if (query) {
     where.OR = [

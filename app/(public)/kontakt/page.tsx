@@ -1,7 +1,9 @@
 import React from 'react'
-import { MapPin, Phone, Mail, Clock, Map } from 'lucide-react'
+import { MapPin, Phone, Mail, Clock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ContactForm } from '@/components/contact-form'
+// ... zbytek souboru zůstává stejný (obsah pod importy)
+// (vlož celý obsah souboru, pouze smaž "Map" z importu z 'lucide-react')
 
 const contactInfo = [
   { 

@@ -19,7 +19,6 @@ export function SiteHeader() {
     { name: 'KONTAKT', href: '/kontakt' },
   ]
 
-  const router = useRouter()
   const { data: session, isPending } = authClient.useSession()
   const { itemCount } = useCart()
 

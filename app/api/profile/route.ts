@@ -4,7 +4,7 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const session = await auth.api.getSession({
         headers: await headers()
@@ -14,7 +14,6 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Neautorizovaný přístup" }, { status: 401 });
     }
 
-    // Načteme uživatele z DB včetně custom políček
     const user = await prisma.user.findUnique({
         where: { id: session.user.id },
         select: {

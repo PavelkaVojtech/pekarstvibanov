@@ -38,7 +38,6 @@ const sidebarItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
-  const router = useRouter()
 
   const handleLogout = async () => {
       try {
@@ -75,7 +74,6 @@ export function AdminSidebar() {
           </div>
         </div>
         
-        {/* Oddělovač a spodní akce */}
         <div className="px-3 py-2 border-t border-border mt-auto">
             <div className="space-y-1 mt-4">
                 <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground" asChild>

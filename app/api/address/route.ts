@@ -4,7 +4,6 @@ import { headers } from "next/headers";
 import { prisma } from "@/lib/db";
 import { z } from "zod";
 
-// Validace vstupu
 const addressSchema = z.object({
   street: z.string().min(2, "Ulice je příliš krátká"),
   city: z.string().min(2, "Město je příliš krátké"),
@@ -13,7 +12,7 @@ const addressSchema = z.object({
     .transform((val) => val.replace(/\s+/g, "")),
 });
 
-export async function GET(req: Request) {
+export async function GET() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) return NextResponse.json({ error: "Neautorizováno" }, { status: 401 });
 
@@ -34,7 +33,6 @@ export async function POST(req: Request) {
     
     const parseResult = addressSchema.safeParse(body);
     if (!parseResult.success) {
-      // OPRAVA ZOD ERRORU: Použijeme .issues
       return NextResponse.json({ error: parseResult.error.issues[0].message }, { status: 400 });
     }
 
@@ -51,7 +49,7 @@ export async function POST(req: Request) {
     });
 
     return NextResponse.json(newAddress);
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Chyba serveru" }, { status: 500 });
   }
 }
@@ -107,7 +105,7 @@ export async function PUT(req: Request) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     return NextResponse.json({ error: "Chyba serveru" }, { status: 500 });
   }
 }

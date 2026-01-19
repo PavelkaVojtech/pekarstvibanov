@@ -60,20 +60,15 @@ export default function CustomersPage() {
     const [query, setQuery] = useState("")
     const [users, setUsers] = useState<UserWithDetails[]>([])
     const [loading, setLoading] = useState(true)
-    const [selectedUser, setSelectedUser] = useState<UserWithDetails | null>(null)
 
     useEffect(() => {
         const fetchUsers = async () => {
             setLoading(true)
             try {
                 const data = await getUsers(query)
-                // Type assertion is safe here as the server action returns data matching our structure
-                // Dates are serialized but next.js handles it, though strictly they might come as strings in some setups
-                // We'll treat them as Dates or strings that can be put into Date ctor
                 setUsers(data as unknown as UserWithDetails[])
             } catch (error) {
                 console.error("Failed to fetch users", error)
-                // Toast removed from here to prevent infinite loop if toast reference changes
             } finally {
                 setLoading(false)
             }
@@ -81,7 +76,7 @@ export default function CustomersPage() {
 
         const timeoutId = setTimeout(fetchUsers, 300)
         return () => clearTimeout(timeoutId)
-    }, [query]) // Removed toast from dependencies to prevent infinite loop
+    }, [query])
 
     const handleRoleChange = async (userId: string, newRole: "USER" | "ADMIN" | "EMPLOYEE") => {
         const previousUsers = [...users]
@@ -91,7 +86,7 @@ export default function CustomersPage() {
         try {
             await updateUserRole(userId, newRole)
              toast.success("Role změněna", `Role uživatele byla aktualizována.`)
-        } catch (error) {
+        } catch {
              setUsers(previousUsers)
             toast.error("Chyba", "Nepodařilo se změnit roli.")
         }
@@ -167,7 +162,7 @@ export default function CustomersPage() {
                                     <TableCell>
                                         <Select 
                                             defaultValue={user.role} 
-                                            onValueChange={(val) => handleRoleChange(user.id, val as any)}
+                                            onValueChange={(val) => handleRoleChange(user.id, val as "USER" | "ADMIN" | "EMPLOYEE")}
                                         >
                                             <SelectTrigger className="w-[140px] h-8">
                                                 <SelectValue />
@@ -185,7 +180,7 @@ export default function CustomersPage() {
                                     <TableCell>
                                         <Sheet>
                                             <SheetTrigger asChild>
-                                                <Button variant="ghost" size="icon" onClick={() => setSelectedUser(user)}>
+                                                <Button variant="ghost" size="icon">
                                                     <Info className="h-4 w-4" />
                                                 </Button>
                                             </SheetTrigger>

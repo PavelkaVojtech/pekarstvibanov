@@ -29,7 +29,7 @@ export function OrderActions({ orderId, currentStatus }: { orderId: string, curr
       await updateOrderStatus(orderId, status)
       toast({ title: "Stav změněn", description: `Objednávka je nyní: ${getStatusLabel(status)}` })
       router.refresh() 
-    } catch (e) {
+    } catch {
       toast({ variant: "destructive", title: "Chyba", description: "Nepodařilo se změnit stav" })
     } finally {
       setLoading(false)

@@ -5,7 +5,7 @@ import { auth } from "@/lib/auth"
 import { headers } from "next/headers"
 import { z } from "zod"
 import { sendEmail } from "@/lib/email"
-import { getOrderStatusEmailContent } from "../../lib/order-status-email"
+import { getOrderStatusEmailContent } from "@/lib/order-status-email"
 import { Prisma } from "@prisma/client"
 
 const ORDER_STATUSES = [
@@ -77,7 +77,6 @@ function getCreateOrderSchema() {
 }
 
 function parseLocalDateOnly(dateStr: string) {
-  // Accepts YYYY-MM-DD and creates a Date at local midnight.
   const match = /^([0-9]{4})-([0-9]{2})-([0-9]{2})$/.exec(dateStr)
   if (!match) throw new Error("Neplatné datum")
   const year = Number(match[1])
@@ -91,7 +90,6 @@ function parseLocalDateOnly(dateStr: string) {
 function assertDeliveryCutoff(requestedDateLocal: Date) {
   const now = new Date()
 
-  // Cutoff is 15:00 the previous day (local time).
   const cutoff = new Date(
     requestedDateLocal.getFullYear(),
     requestedDateLocal.getMonth(),
@@ -122,8 +120,6 @@ export async function createOrder(rawData: unknown) {
     throw new Error("Chybí doručovací adresa")
   }
 
-  // Pokud je osobní odběr a uživatel má uloženou doručovací adresu v profilu,
-  // uložíme ji jako snapshot (užitečné pro admina), ale nikdy nevymýšlíme "prodejnu/00000".
   const fallbackAddress =
     validated.deliveryMethod === "PICKUP"
       ? await prisma.address.findFirst({
@@ -151,13 +147,15 @@ export async function createOrder(rawData: unknown) {
   const productIds = Array.from(new Set(validated.items.map((i) => i.productId)))
   const products = await prisma.product.findMany({
     where: { id: { in: productIds } },
-    select: { id: true, price: true },
+    select: { id: true, price: true, name: true },
   })
 
   const productById = new Map(products.map((p) => [p.id, p]))
 
   let totalPrice = new Prisma.Decimal(0)
   const orderItemsData: Array<{ productId: string; quantity: number; price: Prisma.Decimal }> = []
+  
+  const emailItems: Array<{ productName: string; quantity: number; price: number }> = []
 
   for (const item of validated.items) {
     const product = productById.get(item.productId)
@@ -170,9 +168,14 @@ export async function createOrder(rawData: unknown) {
       quantity: item.quantity,
       price: product.price,
     })
+
+    emailItems.push({
+      productName: product.name,
+      quantity: item.quantity,
+      price: product.price.toNumber(),
+    })
   }
 
-  // Vytvoření objednávky
   const { randomUUID } = await import("crypto")
 
   const order = await prisma.order.create({
@@ -196,7 +199,21 @@ export async function createOrder(rawData: unknown) {
       }
     }
   })
-
+  const email = getOrderStatusEmailContent({ 
+    orderNumber: order.orderNumber, 
+    status: "PENDING",
+    items: emailItems,
+    totalPrice: totalPrice.toNumber()
+  })
+  
+  if (email && session.user.email) {
+    await sendEmail({
+      to: session.user.email,
+      subject: email.subject,
+      text: email.text,
+      html: email.html,
+    })
+  }
 
   return { success: true, orderId: order.id }
 }
@@ -234,7 +251,14 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
 
   const order = await prisma.order.findUnique({ 
     where: { id: orderId },
-    include: { user: true }
+    include: { 
+      user: true,
+      items: {
+        include: {
+          product: true
+        }
+      }
+    }
   })
   
   if (!order) throw new Error("Objednávka nenalezena")
@@ -259,12 +283,23 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
     }
   })
 
-  const email = getOrderStatusEmailContent({ orderNumber: order.orderNumber, status })
+  const email = getOrderStatusEmailContent({ 
+    orderNumber: order.orderNumber, 
+    status,
+    items: order.items.map(item => ({
+      productName: item.product.name,
+      quantity: item.quantity,
+      price: item.price.toNumber()
+    })),
+    totalPrice: order.totalPrice.toNumber()
+  })
+
   if (email) {
     await sendEmail({
       to: order.user.email,
       subject: email.subject,
       text: email.text,
+      html: email.html,
     })
   }
 

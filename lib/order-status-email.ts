@@ -1,16 +1,19 @@
 import type { OrderStatus } from "@prisma/client"
 
+// Definice toho, co potřebujeme vědět o položce v objednávce
 export type OrderItemDetails = {
   productName: string
   quantity: number
-  price: number
+  price: number // cena za kus nebo celkem za položku, záleží jak to máš v DB
 }
 
 type OrderStatusEmail = {
   subject: string
-  text: string
-  html: string 
+  text: string // Plain text verze (pro staré klienty nebo náhled)
+  html: string // HTML verze (pro moderní vzhled)
+}
 
+// Pomocná funkce pro formátování ceny
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat("cs-CZ", {
     style: "currency",
@@ -19,6 +22,7 @@ const formatPrice = (price: number) => {
   }).format(price)
 }
 
+// Hlavní funkce pro generování HTML obsahu
 function generateEmailHtml(
   title: string,
   message: string,
@@ -26,6 +30,7 @@ function generateEmailHtml(
   totalPrice: number,
   orderNumber: string
 ) {
+  // Jednoduchý inline CSS styl, který funguje ve většině emailových klientů
   const tableRows = items
     .map(
       (item) => `
@@ -80,14 +85,14 @@ function generateEmailHtml(
 export function getOrderStatusEmailContent(params: {
   orderNumber: string
   status: OrderStatus
-  items: OrderItemDetails[]
-  totalPrice: number
+  items: OrderItemDetails[] // Nově vyžadujeme seznam položek
+  totalPrice: number        // Nově vyžadujeme celkovou cenu
 }): OrderStatusEmail | null {
   const { orderNumber, status, items, totalPrice } = params
   const subjectPrefix = `Objednávka ${orderNumber}`
 
   switch (status) {
-    case "PENDING":
+    case "PENDING": // Pokud tento stav máš v DB (čeká na potvrzení)
       return {
         subject: `${subjectPrefix}: Přijata ke zpracování`,
         text: `Dobrý den, děkujeme za vaši objednávku #${orderNumber}. Čeká na potvrzení pekařem.`,
@@ -126,7 +131,7 @@ export function getOrderStatusEmailContent(params: {
         ),
       }
 
-    case "COMPLETED":
+    case "COMPLETED": // Pokud používáš stav pro dokončeno/předáno
       return {
         subject: `${subjectPrefix}: Dokončeno`,
         text: `Děkujeme za nákup. Objednávka #${orderNumber} byla úspěšně dokončena.`,

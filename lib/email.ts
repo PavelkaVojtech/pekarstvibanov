@@ -17,7 +17,7 @@ export async function sendEmail({ to, subject, text, html }: EmailPayload) {
 
   try {
     const data = await resend.emails.send({
-      from: 'onboarding@resend.dev', 
+      from: 'Pekařství Bánov <objednavky@pekarstvibanov.cz>', 
       to: to, 
       subject: subject,
       text: text,

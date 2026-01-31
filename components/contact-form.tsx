@@ -36,6 +36,7 @@ export function ContactForm() {
   
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [success, setSuccess] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -60,14 +61,24 @@ export function ContactForm() {
     }
   }, [session, form])
 
-  function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsSubmitting(true)
     setSuccess(false)
+    setError(null)
     
-    console.log("Odesílaný dotaz:", values)
-    
-    setTimeout(() => {
-      setIsSubmitting(false)
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      })
+
+      if (!response.ok) {
+        throw new Error('Odeslání se nezdařilo')
+      }
+
       setSuccess(true)
       form.reset()
       
@@ -75,7 +86,12 @@ export function ContactForm() {
         form.setValue("name", session.user.name)
         form.setValue("email", session.user.email)
       }
-    }, 2000)
+    } catch (err) {
+      console.error(err)
+      setError("Něco se pokazilo. Zkuste to prosím později.")
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
@@ -84,7 +100,13 @@ export function ContactForm() {
       
       {success && (
         <div className="mb-4 p-4 bg-green-500/20 text-green-700 dark:text-green-400 rounded-lg border border-green-500/30">
-          Děkujeme! Váš dotaz byl odeslán.
+          Děkujeme! Váš dotaz byl úspěšně odeslán.
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-4 p-4 bg-red-500/20 text-red-700 dark:text-red-400 rounded-lg border border-red-500/30">
+          {error}
         </div>
       )}
 

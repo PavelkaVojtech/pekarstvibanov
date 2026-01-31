@@ -7,9 +7,10 @@ interface EmailPayload {
   subject: string;
   text: string;
   html?: string;
+  replyTo?: string;
 }
 
-export async function sendEmail({ to, subject, text, html }: EmailPayload) {
+export async function sendEmail({ to, subject, text, html, replyTo }: EmailPayload) {
   if (!process.env.RESEND_API_KEY) {
     console.log(`To: ${to} | Subject: ${subject}`);
     return { success: true };
@@ -22,6 +23,7 @@ export async function sendEmail({ to, subject, text, html }: EmailPayload) {
       subject: subject,
       text: text,
       html: html || text,
+      replyTo: replyTo,
     });
 
     if (data.error) {

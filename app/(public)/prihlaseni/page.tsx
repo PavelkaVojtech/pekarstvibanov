@@ -3,11 +3,12 @@
 import { useState } from "react"
 import { FaBreadSlice, FaGoogle, FaSpinner } from "react-icons/fa"
 import { authClient } from "@/lib/auth-client"
+import Link from "next/link"
+import { useToast } from "@/hooks/use-toast"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { useToast } from "@/components/ui/toast"
 import {
   Card,
   CardContent,
@@ -43,11 +44,19 @@ export default function AuthenticationPage() {
     }, {
       onSuccess: () => {
         setIsLoading(false)
-        toast.success("Vítejte!", "Přihlášení přes Google proběhlo úspěšně.")
+        toast({
+            title: "Vítejte!",
+            description: "Přihlášení přes Google proběhlo úspěšně.",
+            variant: "success"
+        })
       },
       onError: (ctx) => {
         setIsLoading(false)
-        toast.error("Chyba přihlášení", ctx.error.message || "Nepodařilo se spojit s Googlem.")
+        toast({
+            title: "Chyba přihlášení",
+            description: ctx.error.message || "Nepodařilo se spojit s Googlem.",
+            variant: "destructive"
+        })
       }
     })
   }
@@ -61,14 +70,22 @@ export default function AuthenticationPage() {
     }, {
       onSuccess: (ctx) => {
         setIsLoading(false)
-        toast.success("Vítejte zpět!", "Přihlášení proběhlo úspěšně.")
+        toast({
+            title: "Vítejte zpět!",
+            description: "Přihlášení proběhlo úspěšně.",
+            variant: "success"
+        })
 
         const role = (ctx.data.user as { role?: string } | null | undefined)?.role
         window.location.assign(role === "ADMIN" ? "/admin" : "/")
       },
       onError: (ctx) => {
         setIsLoading(false)
-        toast.error("Chyba přihlášení", ctx.error.message || "Zkontrolujte email a heslo.")
+        toast({
+            title: "Chyba přihlášení",
+            description: ctx.error.message || "Zkontrolujte email a heslo.",
+            variant: "destructive"
+        })
       }
     })
   }
@@ -76,7 +93,11 @@ export default function AuthenticationPage() {
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     if (signUpPassword !== signUpConfirmPassword) {
-      toast.error("Hesla se neshodují", "Zadejte prosím hesla znovu a ujistěte se, že jsou stejná.")
+      toast({
+          title: "Hesla se neshodují",
+          description: "Zadejte prosím hesla znovu a ujistěte se, že jsou stejná.",
+          variant: "destructive"
+      })
       return
     }
 
@@ -88,12 +109,20 @@ export default function AuthenticationPage() {
     }, {
       onSuccess: () => {
         setIsLoading(false)
-        toast.success("Účet vytvořen", "Vítejte v naší pekárně!")
+        toast({
+            title: "Účet vytvořen",
+            description: "Vítejte v naší pekárně!",
+            variant: "success"
+        })
         window.location.assign("/")
       },
       onError: (ctx) => {
         setIsLoading(false)
-        toast.error("Registrace se nezdařila", ctx.error.message)
+        toast({
+            title: "Registrace se nezdařila",
+            description: ctx.error.message,
+            variant: "destructive"
+        })
       }
     })
   }
@@ -135,9 +164,12 @@ export default function AuthenticationPage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
                     <Label htmlFor="password-login">Heslo</Label>
-                    <a href="#" className="text-xs text-primary hover:underline font-medium">
+                    <Link 
+                        href="/zapomenute-heslo" 
+                        className="text-xs text-primary hover:underline font-medium"
+                    >
                       Zapomenuté heslo?
-                    </a>
+                    </Link>
                   </div>
                   <Input
                     id="password-login"

@@ -2,37 +2,34 @@ import React from 'react'
 import { MapPin, Phone, Mail, Clock } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ContactForm } from '@/components/contact-form'
-// ... zbytek souboru zůstává stejný (obsah pod importy)
-// (vlož celý obsah souboru, pouze smaž "Map" z importu z 'lucide-react')
+import { getSiteSettings } from '@/app/actions/settings'
 
-const contactInfo = [
-  { 
-    icon: <MapPin className="text-primary h-6 w-6" />, 
-    title: 'Adresa prodejny', 
-    value: 'Bánov 52, 687 54, Česká republika', 
-  },
-  { 
-    icon: <Phone className="text-primary h-6 w-6" />, 
-    title: 'Telefon', 
-    value: '+420 735 290 268',
-  },
-  { 
-    icon: <Mail className="text-primary h-6 w-6" />, 
-    title: 'Email', 
-    value: 'info@pekarnabanov.cz', 
-  },
-]
+const KontaktPage = async () => {
+  const settings = await getSiteSettings()
+  
+  // Parsování otevírací doby
+  const operatingHours = typeof settings.openingHours === 'string'
+    ? JSON.parse(settings.openingHours)
+    : settings.openingHours
 
-const operatingHours = [
-  { day: 'Po – Pá', hours: '7:00 – 15:30' },
-  { day: 'Sobota', hours: '7:00 – 10:00' },
-  { day: 'Neděle', hours: 'Zavřeno', closed: true },
-]
+  const contactInfo = [
+    { 
+      icon: <MapPin className="text-primary h-6 w-6" />, 
+      title: 'Adresa prodejny', 
+      value: settings.address, 
+    },
+    { 
+      icon: <Phone className="text-primary h-6 w-6" />, 
+      title: 'Telefon', 
+      value: settings.phone,
+    },
+    { 
+      icon: <Mail className="text-primary h-6 w-6" />, 
+      title: 'Email', 
+      value: settings.email, 
+    },
+  ]
 
-const mapEmbedUrl = `https://maps.google.com/maps?q=${encodeURIComponent(contactInfo[0].value)}&t=&z=15&ie=UTF8&iwloc=&output=embed`
-
-
-const KontaktPage = () => {
   return (
     <div className="bg-background min-h-screen py-16 md:py-24 transition-colors duration-300">
       <div className="container mx-auto px-4">
@@ -81,7 +78,7 @@ const KontaktPage = () => {
                 </CardHeader>
                 <CardContent className="p-4 pt-4">
                     <ul className="space-y-2">
-                        {operatingHours.map((item, index) => (
+                        {operatingHours.map((item: { day: string; hours: string; closed?: boolean }, index: number) => (
                             <li key={index} className="flex justify-between text-sm">
                                 <span className={item.closed ? "text-muted-foreground" : "text-foreground"}>
                                     {item.day}
@@ -105,7 +102,7 @@ const KontaktPage = () => {
             </h2>
             <div className="rounded-xl overflow-hidden border border-border shadow-2xl h-[400px]">
                 <iframe
-                    src={mapEmbedUrl}
+                    src={settings.mapIframeSrc}
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}

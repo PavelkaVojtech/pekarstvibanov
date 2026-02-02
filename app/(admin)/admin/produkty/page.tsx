@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Pencil } from "lucide-react"
 import { deleteProduct } from "./actions"
 
 export const dynamic = "force-dynamic"
@@ -72,6 +72,11 @@ export default async function AdminProductsPage() {
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <div className="flex justify-end gap-2">
+                                        <Button asChild variant="ghost" size="icon" className="text-primary hover:bg-primary/10">
+                                            <Link href={`/admin/produkty/${product.id}`}>
+                                                <Pencil className="h-4 w-4" />
+                                            </Link>
+                                        </Button>
                                         <form action={deleteProduct.bind(null, product.id)}>
                                             <Button variant="ghost" size="icon" className="text-destructive hover:bg-destructive/10">
                                                 <Trash2 className="h-4 w-4" />

@@ -19,7 +19,15 @@ const FileSchema = z.custom<File>((value) => value instanceof File)
 const productSchema = z.object({
   name: z.string().min(2, "Název musí mít alespoň 2 znaky"),
   description: z.string().optional(),
-  price: z.coerce.number().min(0, "Cena nemůže být záporná"),
+  price: z.preprocess(
+    (value) => {
+      if (typeof value === "string") {
+        return value.replace(/\s+/g, "").replace(",", ".")
+      }
+      return value
+    },
+    z.coerce.number().min(0, "Cena nemůže být záporná")
+  ),
   categoryId: z.string().min(1, "Vyberte kategorii"),
   image: z.union([FileSchema, z.null()]).optional(),
   isAvailable: z.boolean().optional(),
@@ -93,6 +101,83 @@ export async function createProduct(_prevState: CreateProductState, formData: Fo
   } catch (e) {
     console.error("Chyba při ukládání produktu:", e)
     return { error: "Nepodařilo se uložit produkt do databáze." }
+  }
+
+  revalidatePath("/admin/produkty")
+  revalidatePath("/produkty")
+  return { success: true }
+}
+
+export async function updateProduct(productId: string, _prevState: CreateProductState, formData: FormData): Promise<CreateProductState> {
+  const session = await auth.api.getSession({
+    headers: await headers()
+  })
+
+  const role = (session?.user as { role?: string } | undefined)?.role
+
+  if (role !== "ADMIN") {
+    return { error: "Nemáte oprávnění upravovat produkty." }
+  }
+
+  const imageValue = formData.get("image")
+  const image = imageValue instanceof File && imageValue.size > 0 ? imageValue : null
+
+  const rawData = {
+    name: formData.get("name"),
+    description: formData.get("description"),
+    price: formData.get("price"),
+    categoryId: formData.get("categoryId"),
+    image,
+    isAvailable: formData.get("isAvailable") === "on",
+  }
+
+  const result = productSchema.safeParse(rawData)
+
+  if (!result.success) {
+    return { error: result.error.issues[0].message }
+  }
+
+  try {
+    const existingProduct = await prisma.product.findUnique({ where: { id: productId } })
+    if (!existingProduct) {
+      return { error: "Produkt nebyl nalezen." }
+    }
+
+    let imageUrl: string | null = existingProduct.imageUrl
+
+    if (result.data.image instanceof File) {
+      if (!result.data.image.type?.startsWith("image/")) {
+        return { error: "Obrázek musí být typu image/*" }
+      }
+
+      const uploadsDir = path.join(process.cwd(), "public", "uploads")
+      await fs.mkdir(uploadsDir, { recursive: true })
+
+      const ext = path.extname(result.data.image.name || "").toLowerCase()
+      const safeExt = ext && ext.length <= 10 ? ext : ""
+      const fileName = `${randomUUID()}${safeExt}`
+      const filePath = path.join(uploadsDir, fileName)
+
+      const arrayBuffer = await result.data.image.arrayBuffer()
+      await fs.writeFile(filePath, Buffer.from(arrayBuffer))
+
+      imageUrl = `/uploads/${fileName}`
+    }
+
+    await prisma.product.update({
+      where: { id: productId },
+      data: {
+        name: result.data.name,
+        description: result.data.description,
+        price: result.data.price,
+        categoryId: result.data.categoryId,
+        imageUrl,
+        isAvailable: result.data.isAvailable ?? true,
+      },
+    })
+  } catch (e) {
+    console.error("Chyba při ukládání produktu:", e)
+    return { error: "Nepodařilo se uložit změny produktu." }
   }
 
   revalidatePath("/admin/produkty")

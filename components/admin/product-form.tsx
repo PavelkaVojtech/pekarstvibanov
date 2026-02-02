@@ -1,7 +1,7 @@
 "use client"
 
 import { useActionState, useEffect, useRef } from "react"
-import { createProduct, type CreateProductState } from "@/app/(admin)/admin/produkty/actions"
+import { createProduct, updateProduct, type CreateProductState } from "@/app/(admin)/admin/produkty/actions"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,17 +18,26 @@ import { Save, Loader2 } from "lucide-react"
 
 interface ProductFormProps {
   categories: { id: string; name: string }[]
+  product?: {
+    id: string
+    name: string
+    description: string
+    price: number
+    categoryId: string
+    isAvailable: boolean
+  }
 }
 
-export function ProductForm({ categories }: ProductFormProps) {
-  const [state, formAction, isPending] = useActionState(createProduct, null as CreateProductState)
+export function ProductForm({ categories, product }: ProductFormProps) {
+  const action = product ? updateProduct.bind(null, product.id) : createProduct
+  const [state, formAction, isPending] = useActionState(action, null as CreateProductState)
   const formRef = useRef<HTMLFormElement>(null)
 
   useEffect(() => {
-    if (state?.success) {
+    if (state?.success && !product) {
       formRef.current?.reset()
     }
-  }, [state?.success])
+  }, [state?.success, product])
 
   return (
     <form ref={formRef} action={formAction} className="space-y-6">
@@ -47,7 +56,13 @@ export function ProductForm({ categories }: ProductFormProps) {
 
       <div className="space-y-2">
         <Label htmlFor="name">Název produktu</Label>
-        <Input id="name" name="name" placeholder="Např. Škvarkový chléb" required />
+        <Input
+          id="name"
+          name="name"
+          placeholder="Např. Škvarkový chléb"
+          defaultValue={product?.name}
+          required
+        />
       </div>
 
       <div className="space-y-2">
@@ -57,6 +72,7 @@ export function ProductForm({ categories }: ProductFormProps) {
           name="description" 
           placeholder="Složení, chuť, alergeny..." 
           rows={4} 
+          defaultValue={product?.description}
         />
       </div>
 
@@ -66,17 +82,18 @@ export function ProductForm({ categories }: ProductFormProps) {
           <Input 
               id="price" 
               name="price" 
-              type="number" 
-              step="1" 
+              type="text" 
+              inputMode="decimal"
               min="0" 
-              placeholder="45" 
+              placeholder="12,50" 
+              defaultValue={product ? product.price.toFixed(2).replace(".", ",") : undefined}
               required 
           />
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="category">Kategorie</Label>
-          <Select name="categoryId" required>
+          <Select name="categoryId" required defaultValue={product?.categoryId}>
             <SelectTrigger className="bg-background">
               <SelectValue placeholder="Vyberte kategorii" />
             </SelectTrigger>
@@ -109,7 +126,7 @@ export function ProductForm({ categories }: ProductFormProps) {
       </div>
 
       <div className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4 shadow-sm bg-background">
-        <Checkbox id="isAvailable" name="isAvailable" defaultChecked value="on" />
+        <Checkbox id="isAvailable" name="isAvailable" defaultChecked={product?.isAvailable ?? true} value="on" />
         <div className="space-y-1 leading-none">
           <Label htmlFor="isAvailable" className="cursor-pointer">
             Produkt je dostupný k prodeji
@@ -120,14 +137,14 @@ export function ProductForm({ categories }: ProductFormProps) {
         </div>
       </div>
 
-      <Button type="submit" className="w-full font-bold" disabled={isPending}>
+        <Button type="submit" className="w-full font-bold" disabled={isPending}>
         {isPending ? (
             <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Ukládám...
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Ukládám...
             </>
         ) : (
             <>
-                <Save className="mr-2 h-4 w-4" /> Uložit produkt
+            <Save className="mr-2 h-4 w-4" /> {product ? "Uložit změny" : "Uložit produkt"}
             </>
         )}
       </Button>

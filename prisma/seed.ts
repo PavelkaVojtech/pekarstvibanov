@@ -65,6 +65,29 @@ async function main() {
     console.log('ℹ️  Nastavení webu již existuje, přeskakuji...')
   }
 
+  // Vytvoření výchozích kategorií produktů
+  const defaultCategories = [
+    { name: 'Chléb', slug: 'chleby' },
+    { name: 'Běžné pečivo', slug: 'bezne-pecivo' },
+    { name: 'Jemné pečivo', slug: 'jemne-pecivo' },
+  ]
+
+  for (const category of defaultCategories) {
+    await prisma.category.upsert({
+      where: { slug: category.slug },
+      update: {
+        name: category.name,
+      },
+      create: {
+        name: category.name,
+        slug: category.slug,
+        imageUrl: null,
+      },
+    })
+  }
+
+  console.log('✅ Výchozí kategorie jsou připravené.')
+
   console.log('✅ Seedování dokončeno!')
 }
 

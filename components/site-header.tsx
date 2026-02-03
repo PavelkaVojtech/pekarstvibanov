@@ -30,8 +30,10 @@ export function SiteHeader() {
   const sessionData = isMounted ? session : null
   const showAuthUi = isMounted && !isPending
   const profileHref =
-    sessionData?.user?.role === "ADMIN" || sessionData?.user?.role === "EMPLOYEE"
+    sessionData?.user?.role === "ADMIN"
       ? "/admin/profil"
+      : sessionData?.user?.role === "EMPLOYEE"
+      ? "/zamestnanec/profil"
       : "/profil"
 
   const handleLogout = async () => {

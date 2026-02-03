@@ -40,7 +40,7 @@ export default function AuthenticationPage() {
     setIsLoading(true)
     await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/"
+      callbackURL: "/profil"
     }, {
       onSuccess: () => {
         setIsLoading(false)
@@ -77,7 +77,13 @@ export default function AuthenticationPage() {
         })
 
         const role = (ctx.data.user as { role?: string } | null | undefined)?.role
-        window.location.assign(role === "ADMIN" ? "/admin" : "/")
+        if (role === "ADMIN") {
+          window.location.assign("/admin/profil")
+        } else if (role === "EMPLOYEE") {
+          window.location.assign("/zamestnanec/profil")
+        } else {
+          window.location.assign("/profil")
+        }
       },
       onError: (ctx) => {
         setIsLoading(false)
@@ -114,7 +120,7 @@ export default function AuthenticationPage() {
             description: "Vítejte v naší pekárně!",
             variant: "success"
         })
-        window.location.assign("/")
+        window.location.assign("/profil")
       },
       onError: (ctx) => {
         setIsLoading(false)

@@ -4,56 +4,39 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { LayoutDashboard, ShoppingBag, Users, Settings, LogOut, PackagePlus, Store, User } from "lucide-react"
+import { ShoppingBag, PackagePlus, Store, User, LogOut } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
-import { useRouter } from "next/navigation"
 
 const sidebarItems = [
   {
-    title: "Přehled",
-    href: "/admin",
-    icon: LayoutDashboard,
-  },
-  {
     title: "Objednávky",
-    href: "/admin/objednavky",
+    href: "/zamestnanec/objednavky",
     icon: ShoppingBag,
   },
   {
     title: "Produkty",
-    href: "/admin/produkty",
+    href: "/zamestnanec/produkty",
     icon: PackagePlus,
-  },
-  {
-    title: "Zákazníci",
-    href: "/admin/zakaznici",
-    icon: Users,
-  },
-  {
-    title: "Nastavení webu",
-    href: "/admin/nastaveni",
-    icon: Settings,
   },
 ]
 
-export function AdminSidebar() {
+export function EmployeeSidebar() {
   const pathname = usePathname()
-  const { data: session } = authClient.useSession()
 
   const handleLogout = async () => {
-      try {
-        await authClient.signOut()
-      } finally {
-        window.location.assign("/")
-      }
+    try {
+      await authClient.signOut()
+    } finally {
+      window.location.assign("/")
     }
+  }
 
   return (
     <div className="pb-12 min-h-screen w-64 bg-card border-r border-border fixed left-0 top-0 hidden md:block">
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
           <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight text-primary font-serif">
-            Administrace
+            Zaměstnanec
           </h2>
           <div className="space-y-1">
             {sidebarItems.map((item) => (
@@ -78,9 +61,9 @@ export function AdminSidebar() {
         <div className="px-3 py-2 border-t border-border mt-auto">
             <div className="space-y-1 mt-4">
                 <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground" asChild>
-                  <Link href="/admin/profil">
-                        <User className="mr-2 h-4 w-4" /> Můj profil
-                    </Link>
+                  <Link href="/zamestnanec/profil">
+                    <User className="mr-2 h-4 w-4" /> Můj profil
+                  </Link>
                 </Button>
                 <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground" asChild>
                     <Link href="/">

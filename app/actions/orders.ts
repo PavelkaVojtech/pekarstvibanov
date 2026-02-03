@@ -245,7 +245,7 @@ export async function cancelOrder(orderId: string) {
 export async function updateOrderStatus(orderId: string, newStatus: string) {
   const session = await auth.api.getSession({ headers: await headers() })
   
-  if (session?.user.role !== "ADMIN") {
+  if (session?.user.role !== "ADMIN" && session?.user.role !== "EMPLOYEE") {
     throw new Error("Přístup zamítnut. Pouze pro administrátory.")
   }
 

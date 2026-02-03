@@ -38,6 +38,15 @@ const sidebarItems = [
 
 export function AdminSidebar() {
   const pathname = usePathname()
+  const { data: session } = authClient.useSession()
+
+  const profileHref = session?.user?.role === "ADMIN" || session?.user?.role === "EMPLOYEE"
+    ? "/admin/profil"
+    : "/profil"
+
+  const visibleItems = session?.user?.role === "EMPLOYEE"
+    ? sidebarItems.filter((item) => item.href === "/admin/objednavky" || item.href === "/admin/produkty")
+    : sidebarItems
 
   const handleLogout = async () => {
       try {
@@ -55,7 +64,7 @@ export function AdminSidebar() {
             Administrace
           </h2>
           <div className="space-y-1">
-            {sidebarItems.map((item) => (
+            {visibleItems.map((item) => (
               <Button
                 key={item.href}
                 variant={pathname === item.href ? "secondary" : "ghost"}
@@ -77,7 +86,7 @@ export function AdminSidebar() {
         <div className="px-3 py-2 border-t border-border mt-auto">
             <div className="space-y-1 mt-4">
                 <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-foreground" asChild>
-                    <Link href="/profil">
+                  <Link href={profileHref}>
                         <User className="mr-2 h-4 w-4" /> Můj profil
                     </Link>
                 </Button>

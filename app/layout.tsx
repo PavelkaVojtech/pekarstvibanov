@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { CartProvider } from "@/components/providers/cart-provider";
 import { cookies } from "next/headers";
 
-
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -15,8 +14,8 @@ export default async function RootLayout({
   const initialItemCount = Number(cookieStore.get("cart_count")?.value ?? 0) || 0
 
   return (
-    <html lang="cs" suppressHydrationWarning>
-      <body className={`antialiased flex flex-col min-h-screen font-sans`}>
+    <html lang="cs" suppressHydrationWarning className="overflow-x-hidden">
+      <body className="antialiased flex flex-col min-h-screen font-sans overflow-x-hidden w-full">
         <ThemeProvider
             attribute="class"
             defaultTheme="system"

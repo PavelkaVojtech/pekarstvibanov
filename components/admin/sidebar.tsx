@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { LayoutDashboard, ShoppingBag, Users, Settings, LogOut, PackagePlus, Store, User } from "lucide-react"
 import { authClient } from "@/lib/auth-client"
-import { useRouter } from "next/navigation"
 
 const sidebarItems = [
   {
@@ -36,20 +35,19 @@ const sidebarItems = [
   },
 ]
 
-export function AdminSidebar() {
+export function AdminSidebar({ className }: { className?: string }) {
   const pathname = usePathname()
-  const { data: session } = authClient.useSession()
 
   const handleLogout = async () => {
-      try {
-        await authClient.signOut()
-      } finally {
-        window.location.assign("/")
-      }
+    try {
+      await authClient.signOut()
+    } finally {
+      window.location.assign("/")
     }
+  }
 
   return (
-    <div className="pb-12 min-h-screen w-64 bg-card border-r border-border fixed left-0 top-0 hidden md:block">
+    <div className={cn("pb-12 min-h-screen w-64 bg-card border-r border-border", className)}>
       <div className="space-y-4 py-4">
         <div className="px-3 py-2">
           <h2 className="mb-2 px-4 text-lg font-semibold tracking-tight text-primary font-serif">

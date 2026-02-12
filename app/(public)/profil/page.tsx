@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { authClient } from "@/lib/auth-client"
-import { MapPin, Settings, LogOut, Save, Plus, Trash2, Loader2, Lock, LayoutDashboard, Eye, RefreshCw, ShoppingBag, Calendar, CreditCard, User, Pencil, AlertCircle, XCircle } from "lucide-react"
+import { MapPin, Settings, LogOut, Save, Plus, Trash2, Loader2, Lock, LayoutDashboard, Eye, RefreshCw, ShoppingBag, Calendar, CreditCard, User, Pencil, AlertCircle, XCircle, Search } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -99,6 +99,7 @@ export default function ProfilePage() {
   const [addresses, setAddresses] = useState<Address[]>([])
   const [orders, setOrders] = useState<UserOrder[]>([])
   const [ordersLoading, setOrdersLoading] = useState(false)
+  const [aresLoading, setAresLoading] = useState(false)
 
   const [isEditOrderDialogOpen, setIsEditOrderDialogOpen] = useState(false)
   const [editOrderLoading, setEditOrderLoading] = useState(false)
@@ -155,6 +156,32 @@ export default function ProfilePage() {
             const res = await fetch("/api/orders");
             if (res.ok) setOrders(await res.json());
         } finally { setOrdersLoading(false); }
+    }
+
+    const handleAresFetch = async () => {
+        const ico = profileForm.getValues("ico");
+        if (!ico || ico.length !== 8) {
+            toast.error("Neplatné IČO", "IČO musí mít 8 číslic.");
+            return;
+        }
+
+        setAresLoading(true);
+        try {
+            const res = await fetch(`/api/ares/${ico}`);
+            const data = await res.json();
+
+            if (data.error) {
+                toast.error("Chyba", data.error);
+            } else {
+                profileForm.setValue("companyName", data.companyName);
+                if (data.dic) profileForm.setValue("dic", data.dic);
+                toast.success("Údaje načteny", "Informace o firmě byly úspěšně načteny z registru ARES.");
+            }
+        } catch (error) {
+            toast.error("Chyba", "Nepodařilo se spojit s registrem ARES.");
+        } finally {
+            setAresLoading(false);
+        }
     }
 
     const openEditOrder = async (orderId: string) => {
@@ -296,11 +323,20 @@ export default function ProfilePage() {
                   )} />
                   {profileForm.watch("isCompany") && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in slide-in-from-top-2">
+                      <FormField control={profileForm.control} name="ico" render={({ field }) => (
+                        <FormItem>
+                            <FormLabel className="font-black uppercase text-[10px] tracking-widest text-primary">IČO</FormLabel>
+                            <div className="flex gap-2">
+                                <FormControl><Input {...field} className="h-12" placeholder="12345678" /></FormControl>
+                                <Button type="button" variant="outline" size="icon" className="h-12 w-12 shrink-0" onClick={handleAresFetch} disabled={aresLoading}>
+                                    {aresLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Search className="h-5 w-5" />}
+                                </Button>
+                            </div>
+                            <FormMessage />
+                        </FormItem>
+                      )} />
                       <FormField control={profileForm.control} name="companyName" render={({ field }) => (
                         <FormItem><FormLabel className="font-black uppercase text-[10px] tracking-widest text-primary">Název firmy</FormLabel><FormControl><Input {...field} className="h-12" /></FormControl><FormMessage /></FormItem>
-                      )} />
-                      <FormField control={profileForm.control} name="ico" render={({ field }) => (
-                        <FormItem><FormLabel className="font-black uppercase text-[10px] tracking-widest text-primary">IČO</FormLabel><FormControl><Input {...field} className="h-12" /></FormControl><FormMessage /></FormItem>
                       )} />
                       <FormField control={profileForm.control} name="dic" render={({ field }) => (
                         <FormItem><FormLabel className="font-black uppercase text-[10px] tracking-widest text-primary">DIČ</FormLabel><FormControl><Input {...field} className="h-12" /></FormControl><FormMessage /></FormItem>
@@ -350,7 +386,6 @@ export default function ProfilePage() {
             <div className="text-center py-20 bg-muted/20 rounded-2xl border-2 border-dashed italic text-muted-foreground">Zatím jste neudělali žádnou objednávku.</div>
           ) : (
             <div className="space-y-6">
-              {/* MOBILNÍ KARTY */}
               <div className="grid grid-cols-1 gap-6 md:hidden">
                 {orders.map((order) => (
                   <Card key={order.id} className="overflow-hidden border-l-4 border-l-primary shadow-lg rounded-2xl">
@@ -391,7 +426,6 @@ export default function ProfilePage() {
                 ))}
               </div>
 
-              {/* DESKTOP TABULKA */}
               <div className="hidden md:block border-none shadow-xl rounded-2xl bg-card overflow-hidden">
                 <Table>
                   <TableHeader className="bg-muted/50">

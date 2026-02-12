@@ -105,7 +105,6 @@ function assertDeliveryCutoff(requestedDateLocal: Date) {
   }
 }
 
-
 export async function createOrder(rawData: unknown) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) throw new Error("Musíte být přihlášen.")
@@ -154,7 +153,6 @@ export async function createOrder(rawData: unknown) {
 
   let totalPrice = new Prisma.Decimal(0)
   const orderItemsData: Array<{ productId: string; quantity: number; price: Prisma.Decimal }> = []
-  
   const emailItems: Array<{ productName: string; quantity: number; price: number }> = []
 
   for (const item of validated.items) {
@@ -199,6 +197,7 @@ export async function createOrder(rawData: unknown) {
       }
     }
   })
+
   const email = getOrderStatusEmailContent({ 
     orderNumber: order.orderNumber, 
     status: "PENDING",
@@ -241,30 +240,19 @@ export async function cancelOrder(orderId: string) {
   return { success: true }
 }
 
-
 export async function updateOrderStatus(orderId: string, newStatus: string) {
   const session = await auth.api.getSession({ headers: await headers() })
-  
   if (session?.user.role !== "ADMIN" && session?.user.role !== "EMPLOYEE") {
-    throw new Error("Přístup zamítnut. Pouze pro administrátory.")
+    throw new Error("Přístup zamítnut.")
   }
 
   const order = await prisma.order.findUnique({ 
     where: { id: orderId },
-    include: { 
-      user: true,
-      items: {
-        include: {
-          product: true
-        }
-      }
-    }
+    include: { user: true, items: { include: { product: true } } }
   })
   
   if (!order) throw new Error("Objednávka nenalezena")
-
   const status = z.enum(ORDER_STATUSES).parse(newStatus)
-
   const now = new Date()
 
   const milestoneData: Record<string, Date> = {
@@ -277,19 +265,14 @@ export async function updateOrderStatus(orderId: string, newStatus: string) {
 
   await prisma.order.update({
     where: { id: orderId },
-    data: {
-      status,
-      ...milestoneData,
-    }
+    data: { status, ...milestoneData }
   })
 
   const email = getOrderStatusEmailContent({ 
     orderNumber: order.orderNumber, 
     status,
     items: order.items.map(item => ({
-      productName: item.product.name,
-      quantity: item.quantity,
-      price: item.price.toNumber()
+      productName: item.product.name, quantity: item.quantity, price: item.price.toNumber()
     })),
     totalPrice: order.totalPrice.toNumber()
   })

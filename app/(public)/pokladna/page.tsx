@@ -9,13 +9,14 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
+import { Checkbox } from "@/components/ui/checkbox"
 import { createOrder } from "@/app/actions/orders"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import Link from "next/link"
-import { Minus, Plus, Trash2, ArrowLeft } from "lucide-react"
+import { Minus, Plus, Trash2, ArrowLeft, CalendarDays } from "lucide-react"
 
 type DeliveryMethod = "DELIVERY" | "PICKUP"
 type PaymentType = "CASH_ON_DELIVERY" | "INVOICE" | "ONLINE_CARD"
@@ -27,11 +28,21 @@ type SavedAddress = {
   zipCode: string
 }
 
+const DAYS = [
+  { id: "1", label: "Pondělí" },
+  { id: "2", label: "Úterý" },
+  { id: "3", label: "Středa" },
+  { id: "4", label: "Čtvrtek" },
+  { id: "5", label: "Pátek" },
+  { id: "6", label: "Sobota" },
+  { id: "0", label: "Neděle" },
+]
+
 export default function CheckoutPage() {
   const { items, totalPrice, clearCart, removeItem, setItemQuantity, incrementItem } = useCart()
   const [loading, setLoading] = useState(false)
   const [orderType, setOrderType] = useState<"ONE_TIME" | "RECURRING">("ONE_TIME")
-  const [recurrence, setRecurrence] = useState<"WEEKLY" | "BIWEEKLY" | "MONTHLY">("WEEKLY")
+  const [selectedDays, setSelectedDays] = useState<string[]>([])
   const [paymentType, setPaymentType] = useState<PaymentType>("CASH_ON_DELIVERY")
 
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>("DELIVERY")
@@ -119,6 +130,16 @@ export default function CheckoutPage() {
     event.preventDefault()
     setLoading(true)
 
+    if (orderType === "RECURRING" && selectedDays.length === 0) {
+      toast({
+        variant: "destructive",
+        title: "Chybí dny",
+        description: "Vyberte prosím alespoň jeden den pro pravidelnou objednávku.",
+      })
+      setLoading(false)
+      return
+    }
+
     if (!requestedDeliveryDate || requestedDeliveryDate < minRequestedDate) {
       toast({
         variant: "destructive",
@@ -143,7 +164,7 @@ export default function CheckoutPage() {
           : undefined,
       paymentType,
       orderType,
-      recurrence: orderType === "RECURRING" ? recurrence : undefined,
+      recurrence: orderType === "RECURRING" ? JSON.stringify({ days: selectedDays }) : undefined,
       note: note || undefined,
     }
 
@@ -162,8 +183,8 @@ export default function CheckoutPage() {
   }
 
   return (
-    <div className="container max-w-6xl py-10">
-      <div className="mb-6 flex items-center justify-between gap-4">
+    <div className="container max-w-6xl py-10 px-4 sm:px-6">
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="space-y-1">
           <h1 className="text-3xl font-bold">Košík & pokladna</h1>
           <p className="text-sm text-muted-foreground">Zkontrolujte položky a dokončete objednávku.</p>
@@ -177,14 +198,14 @@ export default function CheckoutPage() {
       </div>
 
       <div className="grid gap-8 lg:grid-cols-[1fr_420px] lg:items-start">
-        {/* KOŠÍK */}
-        <Card className="order-1 lg:order-2 lg:sticky lg:top-24">
+        <Card className="order-1 lg:order-2 lg:sticky lg:top-24 shadow-md">
           <CardHeader className="pb-4">
             <div className="flex items-center justify-between gap-4">
               <CardTitle>Váš košík</CardTitle>
               <Button
                 type="button"
                 variant="ghost"
+                size="sm"
                 className="text-muted-foreground hover:text-destructive"
                 onClick={clearCart}
               >
@@ -215,50 +236,39 @@ export default function CheckoutPage() {
                       type="button"
                       variant="ghost"
                       size="icon"
-                      className="text-muted-foreground hover:text-destructive"
+                      className="text-muted-foreground hover:text-destructive h-8 w-8"
                       onClick={() => removeItem(item.productId)}
-                      aria-label={`Odstranit ${item.name}`}
-                      title="Odstranit"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
 
                   <div className="mt-2 flex items-center justify-between gap-3">
-                    <div className="flex items-center rounded-md border bg-background">
+                    <div className="flex items-center rounded-md border bg-background h-8">
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
+                        className="h-7 w-7"
                         onClick={() => incrementItem(item.productId, -1)}
-                        aria-label="Snížit množství"
                       >
-                        <Minus className="h-4 w-4" />
+                        <Minus className="h-3 w-3" />
                       </Button>
 
-                      <Input
-                        aria-label="Množství"
-                        inputMode="numeric"
-                        className="h-9 w-16 border-0 text-center shadow-none focus-visible:ring-0"
-                        value={String(item.quantity)}
-                        onChange={(e) => {
-                          const next = Number(e.target.value)
-                          setItemQuantity(item.productId, Number.isFinite(next) ? next : item.quantity)
-                        }}
-                      />
+                      <span className="w-8 text-center text-sm font-medium">{item.quantity}</span>
 
                       <Button
                         type="button"
                         variant="ghost"
                         size="icon"
+                        className="h-7 w-7"
                         onClick={() => incrementItem(item.productId, 1)}
-                        aria-label="Zvýšit množství"
                       >
-                        <Plus className="h-4 w-4" />
+                        <Plus className="h-3 w-3" />
                       </Button>
                     </div>
 
-                    <p className="shrink-0 font-semibold">{formatPrice(item.price * item.quantity)}</p>
+                    <p className="shrink-0 font-semibold text-sm">{formatPrice(item.price * item.quantity)}</p>
                   </div>
                 </div>
               </div>
@@ -278,19 +288,18 @@ export default function CheckoutPage() {
             </div>
           </CardContent>
 
-          <CardFooter className="flex items-center justify-between border-t bg-muted/20">
+          <CardFooter className="flex items-center justify-between border-t bg-muted/20 py-4">
             <span className="text-base font-semibold">Celkem</span>
             <span className="text-lg font-bold text-primary">{formatPrice(totalPrice)}</span>
           </CardFooter>
         </Card>
 
-        {/* FORMULÁŘ */}
         <form onSubmit={onSubmit} className="order-2 lg:order-1 space-y-6">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>Doručení a den</CardTitle>
+              <CardTitle className="text-xl">Doručení a den</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <RadioGroup
                 value={deliveryMethod}
                 onValueChange={(v) => setDeliveryMethod(v === "PICKUP" ? "PICKUP" : "DELIVERY")}
@@ -314,16 +323,17 @@ export default function CheckoutPage() {
               </RadioGroup>
 
               <div className="grid gap-2">
-                <Label htmlFor="requestedDate">Na kdy to chcete?</Label>
+                <Label htmlFor="requestedDate" className="font-bold uppercase tracking-widest text-xs text-primary">Požadovaný den (první závoz)</Label>
                 <Input
                   id="requestedDate"
                   type="date"
+                  className="h-11"
                   value={requestedDeliveryDate}
                   min={minRequestedDate}
                   onChange={(e) => setRequestedDeliveryDate(e.target.value)}
                   required
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-[10px] text-muted-foreground leading-tight">
                   Objednávky na zvolený den jsou možné nejpozději do 15:00 předchozího dne.
                 </p>
               </div>
@@ -331,14 +341,14 @@ export default function CheckoutPage() {
           </Card>
 
           {deliveryMethod === "DELIVERY" && (
-            <Card>
+            <Card className="shadow-sm">
               <CardHeader>
-                <CardTitle>Doručovací údaje</CardTitle>
+                <CardTitle className="text-xl">Doručovací údaje</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {addresses.length > 0 && (
                   <div className="grid gap-2">
-                    <Label>Uložené adresy</Label>
+                    <Label className="font-bold uppercase tracking-widest text-xs text-primary">Uložené adresy</Label>
                     <Select
                       value={selectedAddressId}
                       onValueChange={(id) => {
@@ -351,7 +361,7 @@ export default function CheckoutPage() {
                         }
                       }}
                     >
-                      <SelectTrigger>
+                      <SelectTrigger className="h-11">
                         <SelectValue placeholder="Vyberte adresu" />
                       </SelectTrigger>
                       <SelectContent>
@@ -362,40 +372,39 @@ export default function CheckoutPage() {
                         ))}
                       </SelectContent>
                     </Select>
-                    <p className="text-xs text-muted-foreground">Adresy spravujete v profilu v sekci Nastavení.</p>
                   </div>
                 )}
 
                 <div className="grid gap-2">
-                  <Label htmlFor="street">Ulice a číslo</Label>
+                  <Label htmlFor="street" className="font-bold uppercase tracking-widest text-xs text-primary">Ulice a číslo</Label>
                   <Input
                     id="street"
+                    className="h-11"
                     value={street}
                     onChange={(e) => setStreet(e.target.value)}
                     required
-                    autoComplete="street-address"
                   />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="city">Město</Label>
+                    <Label htmlFor="city" className="font-bold uppercase tracking-widest text-xs text-primary">Město</Label>
                     <Input
                       id="city"
+                      className="h-11"
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       required
-                      autoComplete="address-level2"
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="zip">PSČ</Label>
+                    <Label htmlFor="zip" className="font-bold uppercase tracking-widest text-xs text-primary">PSČ</Label>
                     <Input
                       id="zip"
+                      className="h-11"
                       value={zip}
                       onChange={(e) => setZip(e.target.value)}
                       required
-                      autoComplete="postal-code"
                     />
                   </div>
                 </div>
@@ -403,111 +412,114 @@ export default function CheckoutPage() {
             </Card>
           )}
 
-          <Card>
+          <Card className="shadow-sm border-l-4 border-l-primary">
             <CardHeader>
-              <CardTitle>Typ odběru</CardTitle>
+              <CardTitle className="text-xl">Typ odběru</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <RadioGroup
                 value={orderType}
-                onValueChange={(v) => setOrderType(v === "RECURRING" ? "RECURRING" : "ONE_TIME")}
-                className="grid gap-3"
+                onValueChange={(v) => setOrderType(v as "RECURRING" | "ONE_TIME")}
+                className="grid gap-4 sm:grid-cols-2"
               >
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-accent/40">
-                  <RadioGroupItem value="ONE_TIME" id="ot-one" className="mt-1" />
-                  <span className="space-y-1">
-                    <span className="font-medium">Jednorázová objednávka</span>
-                    <span className="block text-sm text-muted-foreground">Klasický nákup bez opakování.</span>
-                  </span>
-                </label>
+                <div>
+                  <RadioGroupItem value="ONE_TIME" id="ot-one" className="peer sr-only" />
+                  <Label
+                    htmlFor="ot-one"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all"
+                  >
+                    <span className="font-bold">Jednorázová</span>
+                    <span className="text-[10px] text-muted-foreground text-center mt-1">Klasický nákup</span>
+                  </Label>
+                </div>
 
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-accent/40">
-                  <RadioGroupItem value="RECURRING" id="ot-rec" className="mt-1" />
-                  <span className="space-y-1">
-                    <span className="font-medium">Pravidelná objednávka</span>
-                    <span className="block text-sm text-muted-foreground">Automaticky opakovaná podle zvolené frekvence.</span>
-                  </span>
-                </label>
+                <div>
+                  <RadioGroupItem value="RECURRING" id="ot-rec" className="peer sr-only" />
+                  <Label
+                    htmlFor="ot-rec"
+                    className="flex flex-col items-center justify-between rounded-md border-2 border-muted bg-popover p-4 hover:bg-accent peer-data-[state=checked]:border-primary [&:has([data-state=checked])]:border-primary cursor-pointer transition-all"
+                  >
+                    <span className="font-bold">Pravidelná</span>
+                    <span className="text-[10px] text-muted-foreground text-center mt-1">Opakovat každý týden</span>
+                  </Label>
+                </div>
               </RadioGroup>
 
               {orderType === "RECURRING" && (
-                <div className="grid gap-2">
-                  <Label>Frekvence</Label>
-                  <Select value={recurrence} onValueChange={(v) => setRecurrence(v === "BIWEEKLY" || v === "MONTHLY" ? v : "WEEKLY")}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Vyberte frekvenci" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="WEEKLY">Každý týden</SelectItem>
-                      <SelectItem value="BIWEEKLY">Každé 2 týdny</SelectItem>
-                      <SelectItem value="MONTHLY">Jednou měsíčně</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                  <div className="flex items-center gap-2 text-primary">
+                    <CalendarDays className="h-5 w-5" />
+                    <Label className="font-black uppercase tracking-widest text-xs">Vyberte dny doručení</Label>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {DAYS.map((day) => (
+                      <div key={day.id} className="flex items-center space-x-2 bg-muted/50 p-3 rounded-lg border hover:bg-muted transition-colors cursor-pointer">
+                        <Checkbox 
+                          id={`day-${day.id}`} 
+                          checked={selectedDays.includes(day.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) setSelectedDays([...selectedDays, day.id])
+                            else setSelectedDays(selectedDays.filter(d => d !== day.id))
+                          }}
+                        />
+                        <Label htmlFor={`day-${day.id}`} className="font-bold text-sm cursor-pointer select-none">{day.label}</Label>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>Platba</CardTitle>
+              <CardTitle className="text-xl">Platba</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <RadioGroup
                 value={paymentType}
-                onValueChange={(v) => setPaymentType(v === "INVOICE" || v === "ONLINE_CARD" ? v : "CASH_ON_DELIVERY")}
+                onValueChange={(v) => setPaymentType(v as PaymentType)}
                 className="grid gap-3"
               >
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-accent/40">
                   <RadioGroupItem value="CASH_ON_DELIVERY" id="pay-cash" className="mt-1" />
                   <span className="space-y-1">
-                    <span className="font-medium">Hotově / Kartou při převzetí</span>
-                    <span className="block text-sm text-muted-foreground">Nejrychlejší volba pro běžné objednávky.</span>
+                    <span className="font-medium">Při převzetí objednávky</span>
+                    <span className="block text-sm text-muted-foreground">Hotově nebo kartou</span>
                   </span>
                 </label>
 
                 <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-accent/40">
                   <RadioGroupItem value="INVOICE" id="pay-inv" className="mt-1" />
                   <span className="space-y-1">
-                    <span className="font-medium">Na fakturu (Firmy)</span>
-                    <span className="block text-sm text-muted-foreground">Dostupné pro firemní zákazníky s údaji.</span>
-                  </span>
-                </label>
-
-                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-accent/40">
-                  <RadioGroupItem value="ONLINE_CARD" id="pay-card" className="mt-1" />
-                  <span className="space-y-1">
-                    <span className="font-medium">Online kartou</span>
-                    <span className="block text-sm text-muted-foreground">Momentálně nedostupné.</span>
+                    <span className="font-medium">Na fakturu</span>
+                    <span className="block text-sm text-muted-foreground">Pouze pro ověřené firemní zákazníky.</span>
                   </span>
                 </label>
               </RadioGroup>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
-              <CardTitle>Poznámka</CardTitle>
+              <CardTitle className="text-xl">Poznámka</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <Label htmlFor="note" className="sr-only">
-                Poznámka
-              </Label>
+            <CardContent>
               <Textarea
                 id="note"
                 value={note}
+                className="min-h-[100px]"
                 onChange={(e) => setNote(e.target.value)}
-                placeholder="Např. prosím nekrájet chleba…"
+                placeholder="Máte specifické přání? Např. prosím nekrájet chleba…"
               />
-              <p className="text-xs text-muted-foreground">Poznámka je volitelná.</p>
             </CardContent>
           </Card>
 
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? "Odesílám…" : `Objednat za ${formatPrice(totalPrice)}`}
+          <Button type="submit" className="w-full h-14 text-lg font-black shadow-lg" disabled={loading}>
+            {loading ? "Odesílám…" : `DOKONČIT OBJEDNÁVKU (${formatPrice(totalPrice)})`}
           </Button>
 
-          <Button asChild variant="ghost" className="w-full sm:hidden">
+          <Button asChild variant="ghost" className="w-full sm:hidden py-6">
             <Link href="/produkty" className="flex items-center justify-center gap-2">
               <ArrowLeft className="h-4 w-4" /> Pokračovat v nákupu
             </Link>

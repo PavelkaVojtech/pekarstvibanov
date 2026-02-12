@@ -18,20 +18,13 @@ export const dynamic = "force-dynamic"
 
 function getStatusColor(status: string): BadgeProps["variant"] {
   switch (status) {
-    case "PENDING":
-      return "secondary"
-    case "CONFIRMED":
-      return "default"
-    case "BAKING":
-      return "default"
-    case "READY":
-      return "outline"
-    case "COMPLETED":
-      return "outline"
-    case "CANCELLED":
-      return "destructive"
-    default:
-      return "secondary"
+    case "PENDING": return "secondary"
+    case "CONFIRMED": return "default"
+    case "BAKING": return "default"
+    case "READY": return "outline"
+    case "COMPLETED": return "outline"
+    case "CANCELLED": return "destructive"
+    default: return "secondary"
   }
 }
 
@@ -45,6 +38,22 @@ function getStatusLabel(status: string) {
     case "CANCELLED": return "Zrušeno"
     default: return status
   }
+}
+
+function formatRecurrence(recurrence: string | null) {
+    if (!recurrence) return "Neuvedeno"
+    try {
+      const data = JSON.parse(recurrence)
+      if (data.days && Array.isArray(data.days)) {
+        const dayLabels: Record<string, string> = {
+          "1": "Pondělí", "2": "Úterý", "3": "Středa", "4": "Čtvrtek", "5": "Pátek", "6": "Sobota", "0": "Neděle"
+        }
+        return data.days.map((d: string) => dayLabels[d] || d).join(", ")
+      }
+      return recurrence
+    } catch {
+      return recurrence
+    }
 }
 
 function getDeliveryLabel(method: string) {
@@ -156,12 +165,12 @@ export default async function AdminOrderDetailPage({
               <span className="font-medium">{formatDateTime(order.createdAt)}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">Schváleno</span>
-              <span className="font-medium">{formatDateTime(orderWithMilestones.confirmedAt)}</span>
+              <span className="text-muted-foreground">Typ objednávky</span>
+              <span className="font-medium">{getOrderTypeLabel(order.type)}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">Požadovaný den</span>
-              <span className="font-medium">{formatDateTime(order.requestedDeliveryDate)}</span>
+              <span className="text-muted-foreground">Dny opakování</span>
+              <span className="font-bold text-primary">{order.type === "RECURRING" ? formatRecurrence(order.recurrence) : "-"}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Doručení</span>
@@ -170,14 +179,6 @@ export default async function AdminOrderDetailPage({
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Platba</span>
               <span className="font-medium">{getPaymentLabel(order.paymentType)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">Typ</span>
-              <span className="font-medium">{getOrderTypeLabel(order.type)}</span>
-            </div>
-            <div className="flex items-center justify-between gap-4">
-              <span className="text-muted-foreground">Opakování</span>
-              <span className="font-medium">{order.type === "RECURRING" ? (order.recurrence || "Neuvedeno") : "-"}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Poznámka</span>
@@ -245,7 +246,7 @@ export default async function AdminOrderDetailPage({
           <CardTitle>Položky</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="border rounded-md">
+          <div className="border rounded-md overflow-hidden">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -264,11 +265,11 @@ export default async function AdminOrderDetailPage({
                     <TableCell className="text-right">{i.lineTotal} Kč</TableCell>
                   </TableRow>
                 ))}
-                <TableRow>
-                  <TableCell colSpan={3} className="text-right font-bold">
+                <TableRow className="bg-muted/50">
+                  <TableCell colSpan={3} className="text-right font-black">
                     Celkem
                   </TableCell>
-                  <TableCell className="text-right font-bold">{Number(order.totalPrice)} Kč</TableCell>
+                  <TableCell className="text-right font-black text-primary text-lg">{Number(order.totalPrice)} Kč</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

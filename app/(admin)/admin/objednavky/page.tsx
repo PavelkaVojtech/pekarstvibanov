@@ -12,10 +12,26 @@ import {
 } from "@/components/ui/table"
 import { OrderActions } from "./order-actions"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Calendar, User, CreditCard, ShoppingBag, Eye } from "lucide-react"
+import { Calendar, User, CreditCard, ShoppingBag, Eye, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 export const dynamic = "force-dynamic"
+
+function formatRecurrence(recurrence: string | null) {
+  if (!recurrence) return ""
+  try {
+    const data = JSON.parse(recurrence)
+    if (data.days && Array.isArray(data.days)) {
+      const dayLabels: Record<string, string> = {
+        "1": "Po", "2": "Út", "3": "St", "4": "Čt", "5": "Pá", "6": "So", "0": "Ne"
+      }
+      return data.days.map((d: string) => dayLabels[d] || d).join(", ")
+    }
+    return recurrence
+  } catch {
+    return recurrence
+  }
+}
 
 export default async function AdminOrdersPage() {
   const orders = await prisma.order.findMany({
@@ -101,9 +117,16 @@ export default async function AdminOrdersPage() {
                 </div>
 
                 <div className="flex items-center justify-between p-3 bg-muted rounded-lg border border-muted-foreground/10">
-                  <div className="flex items-center gap-2 text-sm">
-                    <CreditCard className="h-4 w-4 text-primary" />
-                    <span className="font-medium">{getPaymentLabel(order.paymentType)}</span>
+                  <div className="flex flex-col gap-1">
+                     <div className="flex items-center gap-2 text-sm">
+                        <CreditCard className="h-4 w-4 text-primary" />
+                        <span className="font-medium">{getPaymentLabel(order.paymentType)}</span>
+                      </div>
+                      {order.type === "RECURRING" && (
+                        <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase">
+                          <RefreshCw className="h-3 w-3" /> {formatRecurrence(order.recurrence)}
+                        </div>
+                      )}
                   </div>
                   <div className="text-lg font-black text-primary">
                     {Number(order.totalPrice)} Kč
@@ -133,7 +156,7 @@ export default async function AdminOrdersPage() {
                 <TableHead className="py-4 pl-6 font-bold">Číslo</TableHead>
                 <TableHead className="py-4 font-bold">Zákazník</TableHead>
                 <TableHead className="py-4 font-bold">Stav</TableHead>
-                <TableHead className="py-4 font-bold">Platba</TableHead>
+                <TableHead className="py-4 font-bold">Platba / Typ</TableHead>
                 <TableHead className="py-4 font-bold">Cena</TableHead>
                 <TableHead className="py-4 font-bold">Datum</TableHead>
                 <TableHead className="py-4 pr-6 text-right font-bold">Akce</TableHead>
@@ -157,7 +180,12 @@ export default async function AdminOrdersPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="py-4 text-sm font-medium text-muted-foreground">
-                    {getPaymentLabel(order.paymentType)}
+                    <div>{getPaymentLabel(order.paymentType)}</div>
+                    {order.type === "RECURRING" && (
+                        <div className="text-[10px] text-primary font-bold uppercase flex items-center gap-1 mt-1">
+                            <RefreshCw className="h-2.5 w-2.5" /> {formatRecurrence(order.recurrence)}
+                        </div>
+                    )}
                   </TableCell>
                   <TableCell className="py-4 font-black text-foreground">
                     {Number(order.totalPrice)} Kč

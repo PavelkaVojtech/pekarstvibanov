@@ -16,8 +16,23 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
   const { productId } = await params
 
   const [categories, product] = await Promise.all([
-    prisma.category.findMany(),
-    prisma.product.findUnique({ where: { id: productId } }),
+    prisma.category.findMany({
+      select: {
+        id: true,
+        name: true,
+      },
+      orderBy: {
+        name: "asc",
+      },
+    }),
+    prisma.product.findUnique({
+      where: { id: productId },
+      include: {
+        images: {
+          orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+        },
+      },
+    }),
   ])
 
   if (!product) {
@@ -49,6 +64,11 @@ export default async function EditProductPage({ params }: EditProductPageProps) 
               price: Number(product.price),
               categoryId: product.categoryId,
               isAvailable: product.isAvailable,
+              images: product.images.map((img) => ({
+                id: img.id,
+                imageUrl: img.imageUrl,
+                isPrimary: img.isPrimary,
+              })),
             }}
           />
         </CardContent>

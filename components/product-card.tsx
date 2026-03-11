@@ -1,14 +1,25 @@
 import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import type { Product } from "@prisma/client"
 import { AddToCart } from "@/components/add-to-cart"
 
 interface ProductCardProps {
-  product: Product
+  product: {
+    id: string
+    name: string
+    description: string | null
+    price: number | string
+    imageUrl: string | null
+    images?: { id: string; imageUrl: string; isPrimary: boolean }[]
+  }
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const primaryImageUrl =
+    product.images?.find((img) => img.isPrimary)?.imageUrl ||
+    product.images?.[0]?.imageUrl ||
+    product.imageUrl
+
   return (
     <Card className="flex flex-col h-full overflow-hidden hover:shadow-lg transition-all duration-300 group relative">
         <Link href={`/produkt/${product.id}`} className="absolute inset-0 z-10" aria-label={`Zobrazit detail ${product.name}`}>
@@ -16,9 +27,9 @@ export function ProductCard({ product }: ProductCardProps) {
         </Link>
 
         <div className="relative aspect-4/3 bg-muted flex items-center justify-center overflow-hidden">
-            {product.imageUrl ? (
+            {primaryImageUrl ? (
                  <Image
-                    src={product.imageUrl}
+                  src={primaryImageUrl}
                     alt={product.name}
                     fill
                     className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -53,7 +64,7 @@ export function ProductCard({ product }: ProductCardProps) {
                     id: product.id,
                     name: product.name,
                     price: Number(product.price),
-                    imageUrl: product.imageUrl
+                    imageUrl: primaryImageUrl
                  }}
                  size="sm"
                  className="font-semibold shadow-sm hover:shadow-md transition-all"

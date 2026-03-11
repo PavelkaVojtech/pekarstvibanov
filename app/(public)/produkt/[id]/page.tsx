@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { ArrowLeft, Check, Truck } from "lucide-react"
-import { AddToCart } from "@/components/add-to-cart" // NOVÝ IMPORT
+import { AddToCart } from "@/components/add-to-cart"
+import { ProductGallery } from "@/components/product-gallery"
 
 export const dynamic = "force-dynamic"
 
@@ -19,12 +20,22 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
     const product = await prisma.product.findUnique({
         where: { id },
-        include: { category: true }
+        include: {
+            category: true,
+            images: {
+                orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+            },
+        },
     })
 
     if (!product) {
         notFound()
     }
+
+    const primaryImageUrl =
+        product.images.find((img) => img.isPrimary)?.imageUrl ||
+        product.images[0]?.imageUrl ||
+        product.imageUrl
 
     return (
         <div className="container mx-auto px-4 py-12 min-h-[70vh]">
@@ -39,19 +50,15 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">
                 <div className="relative aspect-square md:aspect-4/3 bg-muted rounded-2xl overflow-hidden shadow-lg border border-border">
-                    {product.imageUrl ? (
-                        <Image
-                            src={product.imageUrl}
-                            alt={product.name}
-                            fill
-                            className="object-cover"
-                            priority
-                        />
-                    ) : (
-                        <div className="flex items-center justify-center h-full text-9xl opacity-10 select-none">
-                            🥖
-                        </div>
-                    )}
+                    <ProductGallery
+                        name={product.name}
+                        images={[
+                            ...product.images,
+                            ...(product.images.length === 0 && product.imageUrl
+                                ? [{ id: `${product.id}-legacy`, imageUrl: product.imageUrl, isPrimary: true }]
+                                : []),
+                        ]}
+                    />
                 </div>
 
                 <div className="flex flex-col justify-center space-y-6">
@@ -91,7 +98,6 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                     </div>
 
                     <div className="flex gap-4 pt-4">
-                        {/* ZDE POUŽIJEME NOVOU KOMPONENTU */}
                         {product.isAvailable ? (
                             <div className="flex-1">
                                 <AddToCart 
@@ -99,7 +105,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
                                         id: product.id,
                                         name: product.name,
                                         price: Number(product.price),
-                                        imageUrl: product.imageUrl
+                                        imageUrl: primaryImageUrl
                                     }} 
                                     size="lg"
                                     className="w-full h-14 text-lg font-bold shadow-md"

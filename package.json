@@ -23,6 +23,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
+    "@vercel/blob": "^2.3.1",
     "animate.css": "^4.1.1",
     "better-auth": "^1.4.3",
     "class-variance-authority": "^0.7.1",

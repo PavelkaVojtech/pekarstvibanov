@@ -20,7 +20,12 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
         include: {
             products: {
                 where: { isAvailable: true },
-                orderBy: { createdAt: 'desc' }
+                orderBy: { createdAt: 'desc' },
+                include: {
+                    images: {
+                        orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }],
+                    },
+                },
             }
         }
     })
@@ -63,7 +68,21 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
             ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-x-6 gap-y-10">
                     {category.products.map((product: (typeof category.products)[number]) => (
-                        <ProductCard key={product.id} product={product} />
+                        <ProductCard
+                            key={product.id}
+                            product={{
+                                id: product.id,
+                                name: product.name,
+                                description: product.description,
+                                price: Number(product.price),
+                                imageUrl: product.imageUrl,
+                                images: product.images.map((img) => ({
+                                    id: img.id,
+                                    imageUrl: img.imageUrl,
+                                    isPrimary: img.isPrimary,
+                                })),
+                            }}
+                        />
                     ))}
                 </div>
             )}

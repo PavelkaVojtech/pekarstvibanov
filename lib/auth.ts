@@ -3,8 +3,16 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { prisma } from "./db";
 import { sendEmail } from "./email"; // Přidán import
 
+// Determine the base URL for the auth server. in dev we allow the public value
+// to be used on the server as well so that the origin check passes when the
+// site is opened via a network address (e.g. 192.168.56.1).
+const authBaseUrl =
+  process.env.BETTER_AUTH_URL ||
+  process.env.NEXT_PUBLIC_BETTER_AUTH_URL ||
+  "http://localhost:3000";
+
 export const auth = betterAuth({
-  baseURL: process.env.BETTER_AUTH_URL,
+  baseURL: authBaseUrl,
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),

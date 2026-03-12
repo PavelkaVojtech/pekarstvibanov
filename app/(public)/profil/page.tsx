@@ -52,6 +52,7 @@ import {
 import { useToast } from "@/components/ui/toast"
 import { Textarea } from "@/components/ui/textarea"
 import { cancelOrder } from "@/app/actions/orders"
+import { PayOrderButton } from "@/components/pay-order-button"
 
 const profileFormSchema = z.object({
   name: z.string().min(2, "Jméno musí mít alespoň 2 znaky"),
@@ -83,7 +84,8 @@ type Address = { id: string; street: string; city: string; zipCode: string; }
 type UserOrder = {
     id: string; orderNumber: string; status: string; totalPrice: number | string;
     createdAt: string; deliveryMethod: string | null; requestedDeliveryDate: string | null;
-    paymentType: string | null; orderType: string | null; recurrence: string | null;
+  paymentType: string | null; orderType: string | null; recurrence: string | null;
+  isPaid: boolean;
 }
 
 type ProductOption = { id: string; name: string; price: string; }
@@ -257,6 +259,16 @@ export default function ProfilePage() {
         } catch { return ""; }
     }
 
+      const paymentStatusLabel = (order: UserOrder) => {
+        if (order.paymentType !== "ONLINE_CARD") return "Platba při převzetí / fakturou";
+        return order.isPaid ? "Platba zaplacena" : "Čeká na zaplacení";
+      }
+
+      const paymentStatusVariant = (order: UserOrder) => {
+        if (order.paymentType !== "ONLINE_CARD") return "secondary" as const;
+        return order.isPaid ? "default" as const : "outline" as const;
+      }
+
     const handleLogout = async () => {
         await authClient.signOut();
         window.location.assign("/");
@@ -414,6 +426,14 @@ export default function ProfilePage() {
                         )}
                         <div className="flex flex-col gap-3">
                             <div className="text-2xl font-black text-foreground">{Number(order.totalPrice)} Kč</div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={paymentStatusVariant(order)} className="w-fit font-black uppercase text-[9px] px-2 py-0">
+                              {paymentStatusLabel(order)}
+                            </Badge>
+                          </div>
+                          {order.paymentType === "ONLINE_CARD" && !order.isPaid && order.status !== "CANCELLED" && (
+                            <PayOrderButton orderId={order.id} />
+                          )}
                             {order.status === "PENDING" && (
                                 <div className="flex gap-2 w-full">
                                     <Button variant="outline" className="flex-1 font-black uppercase text-[10px] tracking-widest h-10" onClick={() => openEditOrder(order.id)}>Upravit</Button>
@@ -454,6 +474,9 @@ export default function ProfilePage() {
                               <RefreshCw className="h-3 w-3" /> {formatRecurrence(order.recurrence)}
                             </div>
                           )}
+                          <Badge variant={paymentStatusVariant(order)} className="mt-2 w-fit font-black uppercase text-[9px] px-2 py-0">
+                            {paymentStatusLabel(order)}
+                          </Badge>
                         </TableCell>
                         <TableCell className="py-5 font-black text-lg">{Number(order.totalPrice)} Kč</TableCell>
                         <TableCell className="py-5 pr-8 text-right">
@@ -462,6 +485,10 @@ export default function ProfilePage() {
                                 <Button variant="outline" size="sm" className="font-black uppercase text-[10px] tracking-widest h-9 px-4 hover:bg-primary hover:text-white" onClick={() => openEditOrder(order.id)}><Pencil className="h-3 w-3 mr-2" /> Upravit</Button>
                                 <Button variant="ghost" size="icon" className="h-9 w-9 text-destructive hover:bg-destructive/10" onClick={() => handleCancelOrder(order.id)} title="Zrušit objednávku"><XCircle className="h-5 w-5" /></Button>
                              </div>
+                           ) : order.paymentType === "ONLINE_CARD" && !order.isPaid && order.status !== "CANCELLED" ? (
+                               <div className="flex justify-end">
+                                 <PayOrderButton orderId={order.id} />
+                               </div>
                            ) : (
                                <span className="text-[10px] font-black uppercase text-muted-foreground/40 italic">Zpracovává se</span>
                            )}

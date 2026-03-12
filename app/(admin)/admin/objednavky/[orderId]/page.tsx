@@ -181,6 +181,22 @@ export default async function AdminOrderDetailPage({
               <span className="font-medium">{getPaymentLabel(order.paymentType)}</span>
             </div>
             <div className="flex items-center justify-between gap-4">
+              <span className="text-muted-foreground">Stav úhrady</span>
+              <span className="font-medium">
+                {order.paymentType === "ONLINE_CARD"
+                  ? order.isPaid
+                    ? "Platba zaplacena"
+                    : "Čeká na zaplacení"
+                  : "Neplatí se online"}
+              </span>
+            </div>
+            {order.paymentType === "ONLINE_CARD" && order.stripeSessionId && (
+              <div className="flex items-center justify-between gap-4">
+                <span className="text-muted-foreground">Stripe session</span>
+                <span className="font-medium text-right break-all">{order.stripeSessionId}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between gap-4">
               <span className="text-muted-foreground">Poznámka</span>
               <span className="font-medium">{order.note || "-"}</span>
             </div>

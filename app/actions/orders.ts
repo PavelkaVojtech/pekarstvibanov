@@ -7,6 +7,55 @@ import { z } from "zod"
 import { sendEmail } from "@/lib/email"
 import { getOrderStatusEmailContent } from "@/lib/order-status-email"
 import { Prisma } from "@prisma/client"
+import Stripe from "stripe"
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+  apiVersion: "2025-02-24.acacia",
+})
+
+function getAppUrl() {
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (!appUrl) {
+    throw new Error("NEXT_PUBLIC_APP_URL není nastaveno v .env")
+  }
+
+  return appUrl
+}
+
+function mapStripeError(error: unknown) {
+  if (error && typeof error === "object" && "code" in error && error.code === "amount_too_small") {
+    return new Error("Objednávka musí být minimálně za 15 Kč.")
+  }
+
+  return error
+}
+
+async function createStripeCheckoutSessionForOrder(order: {
+  id: string
+  items: Array<{
+    quantity: number
+    price: Prisma.Decimal
+    product: { name: string }
+  }>
+}) {
+  const appUrl = getAppUrl()
+
+  return stripe.checkout.sessions.create({
+    mode: "payment",
+    currency: "czk",
+    line_items: order.items.map((item) => ({
+      quantity: item.quantity,
+      price_data: {
+        currency: "czk",
+        unit_amount: Math.round(item.price.toNumber() * 100),
+        product_data: { name: item.product.name },
+      },
+    })),
+    metadata: { orderId: order.id },
+    success_url: `${appUrl}/dekujeme?orderId=${order.id}&status=success`,
+    cancel_url: `${appUrl}/dekujeme?orderId=${order.id}&status=cancelled`,
+  })
+}
 
 const ORDER_STATUSES = [
   "PENDING",
@@ -198,6 +247,36 @@ export async function createOrder(rawData: unknown) {
     }
   })
 
+  // Stripe Checkout pro online platbu kartou
+  if (validated.paymentType === "ONLINE_CARD") {
+    try {
+      const session = await createStripeCheckoutSessionForOrder({
+        id: order.id,
+        items: orderItemsData.map((item) => {
+          const product = productById.get(item.productId)
+          if (!product) throw new Error(`Produkt ${item.productId} neexistuje`)
+
+          return {
+            quantity: item.quantity,
+            price: item.price,
+            product: { name: product.name },
+          }
+        }),
+      })
+
+      await prisma.order.update({
+        where: { id: order.id },
+        data: { stripeSessionId: session.id },
+      })
+
+      return { success: true, orderId: order.id, checkoutUrl: session.url }
+    } catch (error) {
+      await prisma.order.delete({ where: { id: order.id } })
+
+      throw mapStripeError(error)
+    }
+  }
+
   const email = getOrderStatusEmailContent({ 
     orderNumber: order.orderNumber, 
     status: "PENDING",
@@ -238,6 +317,66 @@ export async function cancelOrder(orderId: string) {
   })
 
   return { success: true }
+}
+
+export async function createCheckoutSessionForExistingOrder(orderId: string) {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) throw new Error("Musíte být přihlášen.")
+
+  const order = await prisma.order.findFirst({
+    where: {
+      id: orderId,
+      userId: session.user.id,
+    },
+    select: {
+      id: true,
+      status: true,
+      paymentType: true,
+      isPaid: true,
+      items: {
+        select: {
+          quantity: true,
+          price: true,
+          product: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  })
+
+  if (!order) throw new Error("Objednávka nebyla nalezena.")
+  if (order.paymentType !== "ONLINE_CARD") {
+    throw new Error("Tato objednávka nepodporuje online doplacení.")
+  }
+  if (order.isPaid) {
+    throw new Error("Tato objednávka už je zaplacená.")
+  }
+  if (order.status === "CANCELLED") {
+    throw new Error("Zrušenou objednávku nelze zaplatit.")
+  }
+  if (order.items.length === 0) {
+    throw new Error("Objednávka neobsahuje žádné položky.")
+  }
+
+  try {
+    const stripeSession = await createStripeCheckoutSessionForOrder(order)
+
+    await prisma.order.update({
+      where: { id: order.id },
+      data: { stripeSessionId: stripeSession.id },
+    })
+
+    if (!stripeSession.url) {
+      throw new Error("Nepodařilo se vytvořit platební odkaz.")
+    }
+
+    return { checkoutUrl: stripeSession.url }
+  } catch (error) {
+    throw mapStripeError(error)
+  }
 }
 
 export async function updateOrderStatus(orderId: string, newStatus: string) {

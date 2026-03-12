@@ -138,6 +138,10 @@ model Order {
   // Fakturace
   billingInvoiced Boolean @default(false) // Zda už byla objednávka zahrnuta do souhrnné faktury
 
+  // Stripe platba
+  stripeSessionId String?  @unique
+  isPaid          Boolean  @default(false)
+
   // SNAPSHOT ADRESY (Uloženo natvrdo pro historii)
   deliveryStreet  String?
   deliveryCity    String?

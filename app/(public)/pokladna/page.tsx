@@ -171,6 +171,12 @@ export default function CheckoutPage() {
     try {
       const result = await createOrder(orderData)
       clearCart()
+
+      if (result && typeof result === "object" && "checkoutUrl" in result && typeof result.checkoutUrl === "string") {
+        window.location.href = result.checkoutUrl
+        return
+      }
+
       toast({ title: "Objednávka odeslána!", description: "Ozveme se vám co nejdříve." })
       const orderId = result && typeof result === "object" && "orderId" in result ? String((result as Record<string, unknown>).orderId) : ""
       router.push(orderId ? `/dekujeme?orderId=${encodeURIComponent(orderId)}` : "/dekujeme")
@@ -486,6 +492,14 @@ export default function CheckoutPage() {
                   <span className="space-y-1">
                     <span className="font-medium">Při převzetí objednávky</span>
                     <span className="block text-sm text-muted-foreground">Hotově nebo kartou</span>
+                  </span>
+                </label>
+
+                <label className="flex cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors hover:bg-accent/40">
+                  <RadioGroupItem value="ONLINE_CARD" id="pay-card" className="mt-1" />
+                  <span className="space-y-1">
+                    <span className="font-medium">Online platba kartou</span>
+                    <span className="block text-sm text-muted-foreground">Bezpečná platba přes Stripe</span>
                   </span>
                 </label>
 

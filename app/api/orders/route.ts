@@ -19,6 +19,7 @@ export async function GET() {
       id: o.id,
       orderNumber: o.orderNumber,
       status: o.status,
+      isPaid: o.isPaid,
       totalPrice: o.totalPrice,
       createdAt: o.createdAt,
       deliveryMethod: o.deliveryMethod,

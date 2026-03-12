@@ -5,11 +5,13 @@ import { prisma } from "@/lib/db"
 
 export default async function AdminDashboard() {
   const pendingCount = await prisma.order.count({ where: { status: "PENDING" } })
+  const paidOnlineCount = await prisma.order.count({ where: { paymentType: "ONLINE_CARD", isPaid: true } })
+  const unpaidOnlineCount = await prisma.order.count({ where: { paymentType: "ONLINE_CARD", isPaid: false, status: { not: "CANCELLED" } } })
   const recentPending = await prisma.order.findMany({
     where: { status: "PENDING" },
     orderBy: { createdAt: "desc" },
     take: 5,
-    select: { id: true, orderNumber: true, createdAt: true, totalPrice: true },
+    select: { id: true, orderNumber: true, createdAt: true, totalPrice: true, paymentType: true, isPaid: true },
   })
 
   return (
@@ -18,7 +20,7 @@ export default async function AdminDashboard() {
         <h2 className="text-3xl font-bold tracking-tight font-serif">Přehled pekárny</h2>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard 
             title="Celkové tržby" 
             value="0 Kč" 
@@ -43,6 +45,12 @@ export default async function AdminDashboard() {
             description="Za posledních 30 dní" 
             icon={DollarSign} 
         />
+        <StatsCard 
+          title="Online platby" 
+          value={paidOnlineCount} 
+          description={`${unpaidOnlineCount} čeká na doplacení`} 
+          icon={DollarSign} 
+        />
       </div>
       
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
@@ -59,7 +67,14 @@ export default async function AdminDashboard() {
                     <div className="space-y-1">
                       {recentPending.map((o) => (
                         <div key={o.id} className="flex items-center justify-between text-sm">
-                          <span className="font-medium">{o.orderNumber}</span>
+                          <div className="flex flex-col gap-1">
+                            <span className="font-medium">{o.orderNumber}</span>
+                            {o.paymentType === "ONLINE_CARD" && (
+                              <span className="text-xs text-muted-foreground">
+                                {o.isPaid ? "Online platba zaplacena" : "Online platba čeká na úhradu"}
+                              </span>
+                            )}
+                          </div>
                           <span className="text-muted-foreground">{o.createdAt.toLocaleDateString("cs-CZ")} • {Number(o.totalPrice)} Kč</span>
                         </div>
                       ))}

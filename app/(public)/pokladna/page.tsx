@@ -11,12 +11,14 @@ import { Separator } from "@/components/ui/separator"
 import { Textarea } from "@/components/ui/textarea"
 import { Checkbox } from "@/components/ui/checkbox"
 import { createOrder } from "@/app/actions/orders"
-import { useEffect, useMemo, useState } from "react"
+import ReCAPTCHA from "react-google-recaptcha"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useToast } from "@/hooks/use-toast"
 import Image from "next/image"
 import Link from "next/link"
 import { Minus, Plus, Trash2, ArrowLeft, CalendarDays } from "lucide-react"
+import { Captcha } from "@/components/ui/captcha"
 
 type DeliveryMethod = "DELIVERY" | "PICKUP"
 type PaymentType = "CASH_ON_DELIVERY" | "INVOICE" | "ONLINE_CARD"
@@ -39,7 +41,7 @@ const DAYS = [
 ]
 
 export default function CheckoutPage() {
-  const { items, totalPrice, clearCart, removeItem, setItemQuantity, incrementItem } = useCart()
+  const { items, totalPrice, clearCart, removeItem, incrementItem } = useCart()
   const [loading, setLoading] = useState(false)
   const [orderType, setOrderType] = useState<"ONE_TIME" | "RECURRING">("ONE_TIME")
   const [selectedDays, setSelectedDays] = useState<string[]>([])
@@ -55,6 +57,8 @@ export default function CheckoutPage() {
   const [city, setCity] = useState("")
   const [zip, setZip] = useState("")
   const [note, setNote] = useState("")
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null)
+  const captchaRef = useRef<ReCAPTCHA | null>(null)
 
   const router = useRouter()
   const { toast } = useToast()
@@ -130,6 +134,16 @@ export default function CheckoutPage() {
     event.preventDefault()
     setLoading(true)
 
+    if (!captchaToken) {
+      toast({
+        variant: "destructive",
+        title: "CAPTCHA",
+        description: "Potvrďte prosím, že nejste robot.",
+      })
+      setLoading(false)
+      return
+    }
+
     if (orderType === "RECURRING" && selectedDays.length === 0) {
       toast({
         variant: "destructive",
@@ -166,6 +180,7 @@ export default function CheckoutPage() {
       orderType,
       recurrence: orderType === "RECURRING" ? JSON.stringify({ days: selectedDays }) : undefined,
       note: note || undefined,
+      captchaToken,
     }
 
     try {
@@ -178,6 +193,8 @@ export default function CheckoutPage() {
       }
 
       toast({ title: "Objednávka odeslána!", description: "Ozveme se vám co nejdříve." })
+      captchaRef.current?.reset()
+      setCaptchaToken(null)
       const orderId = result && typeof result === "object" && "orderId" in result ? String((result as Record<string, unknown>).orderId) : ""
       router.push(orderId ? `/dekujeme?orderId=${encodeURIComponent(orderId)}` : "/dekujeme")
     } catch (error: unknown) {
@@ -528,6 +545,13 @@ export default function CheckoutPage() {
               />
             </CardContent>
           </Card>
+
+          <Captcha
+            ref={captchaRef}
+            onChange={(token) => {
+              setCaptchaToken(token)
+            }}
+          />
 
           <Button type="submit" className="w-full h-14 text-lg font-black shadow-lg" disabled={loading}>
             {loading ? "Odesílám…" : `DOKONČIT OBJEDNÁVKU (${formatPrice(totalPrice)})`}

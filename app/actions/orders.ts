@@ -8,6 +8,7 @@ import { sendEmail } from "@/lib/email"
 import { getOrderStatusEmailContent } from "@/lib/order-status-email"
 import { Prisma } from "@prisma/client"
 import Stripe from "stripe"
+import { verifyCaptcha } from "@/lib/captcha"
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2026-02-25.clover",
@@ -79,6 +80,7 @@ type CreateOrderInput = {
   orderType: (typeof ORDER_TYPES)[number]
   recurrence?: string
   note?: string
+  captchaToken: string
 }
 
 let createOrderSchema: z.ZodType<CreateOrderInput> | null = null
@@ -109,6 +111,7 @@ function getCreateOrderSchema() {
       orderType: z.enum(ORDER_TYPES),
       recurrence: z.string().optional(),
       note: z.string().optional(),
+      captchaToken: z.string().min(1),
     })
     .superRefine((data, ctx) => {
       if (data.deliveryMethod === "DELIVERY") {
@@ -159,6 +162,11 @@ export async function createOrder(rawData: unknown) {
   if (!session) throw new Error("Musíte být přihlášen.")
 
   const validated = getCreateOrderSchema().parse(rawData)
+
+  const isCaptchaValid = await verifyCaptcha(validated.captchaToken)
+  if (!isCaptchaValid) {
+    throw new Error("Ověření CAPTCHA selhalo. Jste robot?")
+  }
 
   const requestedDate = parseLocalDateOnly(validated.requestedDeliveryDate)
   assertDeliveryCutoff(requestedDate)

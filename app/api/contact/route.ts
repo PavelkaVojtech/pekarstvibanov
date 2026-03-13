@@ -1,17 +1,27 @@
 import { NextResponse } from 'next/server';
 import { sendEmail } from '@/lib/email';
 import { z } from 'zod';
+import { verifyCaptcha } from '@/lib/captcha';
 
 const contactSchema = z.object({
   name: z.string().min(2),
   email: z.string().email(),
   message: z.string().min(1),
+  captchaToken: z.string().min(1),
 });
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, message } = contactSchema.parse(body);
+    const { name, email, message, captchaToken } = contactSchema.parse(body);
+
+    const isCaptchaValid = await verifyCaptcha(captchaToken);
+    if (!isCaptchaValid) {
+      return NextResponse.json(
+        { error: 'Ověření CAPTCHA selhalo. Jste robot?' },
+        { status: 400 }
+      );
+    }
 
     const result = await sendEmail({
       to: 'info@pekarstvibanov.cz',

@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { authClient } from "@/lib/auth-client"
+import ReCAPTCHA from "react-google-recaptcha"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -18,6 +19,7 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { Captcha } from "@/components/ui/captcha"
 
 const formSchema = z.object({
   email: z.string().email({
@@ -29,6 +31,8 @@ export default function ForgotPasswordPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [success, setSuccess] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = React.useState<string | null>(null)
+  const captchaRef = React.useRef<ReCAPTCHA | null>(null)
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -38,6 +42,11 @@ export default function ForgotPasswordPage() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!captchaToken) {
+      setError("Potvrďte prosím, že nejste robot.")
+      return
+    }
+
     setIsSubmitting(true)
     setError(null)
     
@@ -45,13 +54,16 @@ export default function ForgotPasswordPage() {
     const { error } = await authClient.requestPasswordReset({
         email: values.email,
         redirectTo: "/obnovit-heslo", 
-    })
+      captchaToken,
+    } as never)
 
     if (error) {
         setError(error.message || "Něco se nepovedlo. Zkuste to prosím znovu.")
         setIsSubmitting(false)
     } else {
         setSuccess(true)
+      captchaRef.current?.reset()
+      setCaptchaToken(null)
         setIsSubmitting(false)
     }
   }
@@ -99,6 +111,16 @@ export default function ForgotPasswordPage() {
                       <FormMessage />
                     </FormItem>
                   )}
+                />
+
+                <Captcha
+                  ref={captchaRef}
+                  onChange={(token) => {
+                    setCaptchaToken(token)
+                    if (token) {
+                      setError(null)
+                    }
+                  }}
                 />
                 
                 <Button type="submit" className="w-full font-bold" disabled={isSubmitting}>

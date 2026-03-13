@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { authClient } from "@/lib/auth-client"
+import ReCAPTCHA from "react-google-recaptcha"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -20,6 +21,7 @@ import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 // ZMĚNA: Správný import z hooks
 import { useToast } from "@/hooks/use-toast"
+import { Captcha } from "@/components/ui/captcha"
 
 const formSchema = z.object({
   password: z.string().min(8, {
@@ -34,6 +36,8 @@ const formSchema = z.object({
 export default function ResetPasswordPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
+  const [captchaToken, setCaptchaToken] = React.useState<string | null>(null)
+  const captchaRef = React.useRef<ReCAPTCHA | null>(null)
   const router = useRouter()
   // ZMĚNA: Správná inicializace
   const { toast } = useToast()
@@ -47,17 +51,25 @@ export default function ResetPasswordPage() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
+    if (!captchaToken) {
+      setError("Potvrďte prosím, že nejste robot.")
+      return
+    }
+
     setIsSubmitting(true)
     setError(null)
     
     const { error } = await authClient.resetPassword({
         newPassword: values.password,
-    })
+        captchaToken,
+    } as never)
 
     if (error) {
         setError(error.message || "Odkaz je neplatný nebo vypršel.")
         setIsSubmitting(false)
     } else {
+      captchaRef.current?.reset()
+      setCaptchaToken(null)
         // ZMĚNA: Správné volání toast funkce
         toast({
             title: "Heslo změněno",
@@ -112,6 +124,16 @@ export default function ResetPasswordPage() {
                     <FormMessage />
                   </FormItem>
                 )}
+              />
+
+              <Captcha
+                ref={captchaRef}
+                onChange={(token) => {
+                  setCaptchaToken(token)
+                  if (token) {
+                    setError(null)
+                  }
+                }}
               />
               
               <Button type="submit" className="w-full font-bold" disabled={isSubmitting}>

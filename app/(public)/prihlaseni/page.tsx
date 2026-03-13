@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useRef, useState } from "react"
 import { FaBreadSlice, FaGoogle, FaSpinner } from "react-icons/fa"
 import { authClient } from "@/lib/auth-client"
 import Link from "next/link"
 import { useToast } from "@/hooks/use-toast"
+import ReCAPTCHA from "react-google-recaptcha"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -23,6 +24,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs"
+import { Captcha } from "@/components/ui/captcha"
 
 export default function AuthenticationPage() {
   const { toast } = useToast()
@@ -35,6 +37,10 @@ export default function AuthenticationPage() {
   const [signUpEmail, setSignUpEmail] = useState("")
   const [signUpPassword, setSignUpPassword] = useState("")
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState("")
+  const [signInCaptchaToken, setSignInCaptchaToken] = useState<string | null>(null)
+  const [signUpCaptchaToken, setSignUpCaptchaToken] = useState<string | null>(null)
+  const signInCaptchaRef = useRef<ReCAPTCHA | null>(null)
+  const signUpCaptchaRef = useRef<ReCAPTCHA | null>(null)
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true)
@@ -63,13 +69,26 @@ export default function AuthenticationPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!signInCaptchaToken) {
+      toast({
+        title: "CAPTCHA",
+        description: "Potvrďte prosím, že nejste robot.",
+        variant: "destructive"
+      })
+      return
+    }
+
     setIsLoading(true)
     await authClient.signIn.email({
       email: signInEmail,
       password: signInPassword,
-    }, {
+      captchaToken: signInCaptchaToken,
+    } as never, {
       onSuccess: (ctx) => {
         setIsLoading(false)
+        signInCaptchaRef.current?.reset()
+        setSignInCaptchaToken(null)
         toast({
             title: "Vítejte zpět!",
             description: "Přihlášení proběhlo úspěšně.",
@@ -107,14 +126,26 @@ export default function AuthenticationPage() {
       return
     }
 
+    if (!signUpCaptchaToken) {
+      toast({
+          title: "CAPTCHA",
+          description: "Potvrďte prosím, že nejste robot.",
+          variant: "destructive"
+      })
+      return
+    }
+
     setIsLoading(true)
     await authClient.signUp.email({
       email: signUpEmail,
       password: signUpPassword,
       name: signUpName,
-    }, {
+      captchaToken: signUpCaptchaToken,
+    } as never, {
       onSuccess: () => {
         setIsLoading(false)
+        signUpCaptchaRef.current?.reset()
+        setSignUpCaptchaToken(null)
         toast({
             title: "Účet vytvořen",
             description: "Vítejte v naší pekárně!",
@@ -185,6 +216,10 @@ export default function AuthenticationPage() {
                     required
                   />
                 </div>
+                <Captcha
+                  ref={signInCaptchaRef}
+                  onChange={(token) => setSignInCaptchaToken(token)}
+                />
                 <Button type="submit" disabled={isLoading} className="w-full font-bold">
                   {isLoading && <FaSpinner className="mr-2 h-4 w-4 animate-spin" />}
                   Přihlásit se
@@ -256,6 +291,10 @@ export default function AuthenticationPage() {
                     required
                   />
                 </div>
+                <Captcha
+                  ref={signUpCaptchaRef}
+                  onChange={(token) => setSignUpCaptchaToken(token)}
+                />
                 <Button type="submit" disabled={isLoading} className="w-full font-bold">
                   {isLoading && <FaSpinner className="mr-2 h-4 w-4 animate-spin" />}
                   Zaregistrovat se

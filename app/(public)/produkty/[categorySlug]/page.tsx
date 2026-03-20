@@ -12,7 +12,6 @@ interface CategoryPageProps {
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-    // Tady získáváme SLUG kategorie (např. 'chleby'), ne ID produktu
     const { categorySlug } = await params
 
     const category = await prisma.category.findUnique({

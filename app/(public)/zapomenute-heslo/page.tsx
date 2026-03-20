@@ -50,7 +50,6 @@ export default function ForgotPasswordPage() {
     setIsSubmitting(true)
     setError(null)
     
-    // ZMĚNA: Použití requestPasswordReset místo forgetPassword
     const { error } = await authClient.requestPasswordReset({
         email: values.email,
         redirectTo: "/obnovit-heslo", 

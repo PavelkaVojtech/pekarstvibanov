@@ -2,7 +2,6 @@ import { MapPin, Wheat, Leaf, Users, Star, Heart, Award, Sparkles } from "lucide
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getSiteSettings } from "@/app/actions/settings"
 
-// Mapa ikon pro dynamické zobrazení
 const iconMap = {
   Wheat,
   Leaf,
@@ -17,7 +16,6 @@ const iconMap = {
 export async function AboutSection() {
   const settings = await getSiteSettings()
   
-  // Parsování JSON polí
   const values = typeof settings.aboutCards === 'string' 
     ? JSON.parse(settings.aboutCards)
     : settings.aboutCards

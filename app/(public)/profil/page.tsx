@@ -269,6 +269,24 @@ export default function ProfilePage() {
         return order.isPaid ? "default" as const : "outline" as const;
       }
 
+    const handleDeleteAddress = async () => {
+        if (!deleteTargetId) return;
+        try {
+            const res = await fetch(`/api/address?id=${deleteTargetId}`, { method: "DELETE" });
+            if (res.ok) {
+                toast.success("Smazáno", "Adresa byla úspěšně smazána.");
+                setIsDeleteConfirmOpen(false);
+                setDeleteTargetId(null);
+                fetchAddresses();
+            } else {
+                const error = await res.json();
+                toast.error("Chyba", error.error || "Nepodařilo se smazat adresu.");
+            }
+        } catch (error: any) {
+            toast.error("Chyba", "Nepodařilo se spojit se serverem.");
+        }
+    }
+
     const handleLogout = async () => {
         await authClient.signOut();
         window.location.assign("/");
@@ -374,7 +392,11 @@ export default function ProfilePage() {
                   <div className="flex items-center gap-2 font-black text-[10px] uppercase tracking-widest text-primary"><MapPin className="h-4 w-4" /> Uložená adresa</div>
                   <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                     <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => { setEditingAddress(addr); addressForm.reset(addr); setIsAddressDialogOpen(true); }}><Settings className="h-4 w-4" /></Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => { setDeleteTargetId(addr.id); setIsDeleteConfirmOpen(true); }}><Trash2 className="h-4 w-4" /></Button>
+
+                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() =>
+                       { setDeleteTargetId(addr.id); setIsDeleteConfirmOpen(true); }}>
+                      <Trash2 className="h-4 w-4" /></Button>
+                 
                   </div>
                 </CardHeader>
                 <CardContent className="p-6 space-y-1">
@@ -512,7 +534,8 @@ export default function ProfilePage() {
                 const url = editingAddress ? `/api/address?id=${editingAddress.id}` : "/api/address";
                 const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(v) });
                 if (res.ok) { toast.success("Uloženo"); setIsAddressDialogOpen(false); fetchAddresses(); }
-            })} className="space-y-6 pt-4">
+            }
+            )} className="space-y-6 pt-4">
               <FormField control={addressForm.control} name="street" render={({ field }) => (
                 <FormItem><FormLabel className="font-black uppercase text-[10px] tracking-widest text-primary">Ulice a číslo</FormLabel><FormControl><Input {...field} className="h-12" /></FormControl><FormMessage /></FormItem>
               )} />
@@ -578,6 +601,19 @@ export default function ProfilePage() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-[425px] rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="font-black text-2xl font-serif">Smazat adresu?</DialogTitle>
+            <DialogDescription className="italic">Tato akce je trvalá a nelze ji vrátit zpět.</DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col sm:flex-row gap-3 pt-4">
+            <Button variant="outline" className="flex-1 h-12 font-black uppercase tracking-widest" onClick={() => setIsDeleteConfirmOpen(false)}>Zrušit</Button>
+            <Button variant="destructive" className="flex-1 h-12 font-black uppercase tracking-widest shadow-lg" onClick={handleDeleteAddress}>Smazat</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

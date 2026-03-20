@@ -19,7 +19,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Loader2 } from "lucide-react"
 import { useRouter } from "next/navigation"
-// ZMĚNA: Správný import z hooks
 import { useToast } from "@/hooks/use-toast"
 import { Captcha } from "@/components/ui/captcha"
 
@@ -39,7 +38,6 @@ export default function ResetPasswordPage() {
   const [captchaToken, setCaptchaToken] = React.useState<string | null>(null)
   const captchaRef = React.useRef<ReCAPTCHA | null>(null)
   const router = useRouter()
-  // ZMĚNA: Správná inicializace
   const { toast } = useToast()
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -70,7 +68,6 @@ export default function ResetPasswordPage() {
     } else {
       captchaRef.current?.reset()
       setCaptchaToken(null)
-        // ZMĚNA: Správné volání toast funkce
         toast({
             title: "Heslo změněno",
             description: "Vaše heslo bylo úspěšně obnoveno.",

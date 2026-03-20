@@ -6,7 +6,6 @@ import { headers } from 'next/headers'
 import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 
-// Schéma pro validaci nastavení
 const openingHoursSchema = z.array(
   z.object({
     day: z.string(),
@@ -24,7 +23,6 @@ const aboutCardsSchema = z.array(
 )
 
 const siteSettingsSchema = z.object({
-  // Kontakt
   phone: z.string().min(1, 'Telefon je povinný'),
   email: z.string().email('Neplatný email'),
   address: z.string().min(1, 'Adresa je povinná'),
@@ -34,14 +32,12 @@ const siteSettingsSchema = z.object({
     return openingHoursSchema.parse(parsed)
   }),
 
-  // Hero sekce
   heroTitle: z.string().min(1, 'Nadpis je povinný'),
   heroSubtitle: z.string().min(1, 'Podnadpis je povinný'),
   heroButtonText: z.string().min(1, 'Text tlačítka je povinný'),
   heroButtonLink: z.string().min(1, 'Odkaz tlačítka je povinný'),
   heroImageUrl: z.string().nullable().optional(),
 
-  // About sekce
   aboutTitle: z.string().min(1, 'Nadpis je povinný'),
   aboutDescription: z.string().min(1, 'Popis je povinný'),
   aboutCards: z.string().transform((val) => {
@@ -49,12 +45,10 @@ const siteSettingsSchema = z.object({
     return aboutCardsSchema.parse(parsed)
   }),
 
-  // Sociální sítě
   facebookUrl: z.string().nullable().optional(),
   instagramUrl: z.string().nullable().optional(),
 })
 
-// Výchozí hodnoty, pokud neexistují nastavení v DB
 const defaultSettings = {
   phone: '+420 735 290 268',
   email: 'info@pekarnabanov.cz',
@@ -98,10 +92,6 @@ const defaultSettings = {
   instagramUrl: '#',
 }
 
-/**
- * Získá nastavení webu z databáze
- * Pokud neexistuje, vrátí výchozí hodnoty
- */
 export async function getSiteSettings() {
   try {
     const settings = await prisma.siteSettings.findFirst()
@@ -127,13 +117,9 @@ export async function getSiteSettings() {
   }
 }
 
-/**
- * Aktualizuje nastavení webu
- * Pouze pro ADMIN uživatele
- */
+
 export async function updateSiteSettings(data: unknown) {
   try {
-    // Ověření přihlášení
     const headersList = await headers()
     const session = await auth.api.getSession({
       headers: headersList,
@@ -143,7 +129,6 @@ export async function updateSiteSettings(data: unknown) {
       return { success: false, error: 'Nejste přihlášeni' }
     }
 
-    // Ověření role ADMIN
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
       select: { role: true },
@@ -153,34 +138,28 @@ export async function updateSiteSettings(data: unknown) {
       return { success: false, error: 'Nemáte oprávnění ke změně nastavení' }
     }
 
-    // Validace dat
     const validatedData = siteSettingsSchema.parse(data)
 
-    // Převedení zpět na JSON stringy (protože transformace vrací parsovaná data)
     const dataToSave = {
       ...validatedData,
       openingHours: JSON.stringify(validatedData.openingHours),
       aboutCards: JSON.stringify(validatedData.aboutCards),
     }
 
-    // Hledání existujícího nastavení
     const existingSettings = await prisma.siteSettings.findFirst()
 
     let settings
     if (existingSettings) {
-      // Aktualizace existujícího
       settings = await prisma.siteSettings.update({
         where: { id: existingSettings.id },
         data: dataToSave,
       })
     } else {
-      // Vytvoření nového
       settings = await prisma.siteSettings.create({
         data: dataToSave,
       })
     }
 
-    // Revalidace cache pro všechny stránky
     revalidatePath('/', 'layout')
 
     return { success: true, data: settings }

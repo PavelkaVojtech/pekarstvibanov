@@ -11,7 +11,6 @@ export async function getUsers(query?: string) {
     headers: await headers()
   })
 
-  // Basic authorization check
   if (session?.user?.role !== "ADMIN") {
     return []
   }

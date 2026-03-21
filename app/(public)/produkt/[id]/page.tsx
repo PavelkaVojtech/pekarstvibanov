@@ -1,13 +1,13 @@
 import { prisma } from "@/lib/db"
 import { notFound } from "next/navigation"
 import Image from "next/image"
-import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
-import { ArrowLeft, Check, Truck } from "lucide-react"
+import { Check, Truck } from "lucide-react"
 import { AddToCart } from "@/components/add-to-cart"
 import { ProductGallery } from "@/components/product-gallery"
+import { BackButton } from "@/components/back-button"
 
 export const dynamic = "force-dynamic"
 
@@ -40,12 +40,7 @@ export default async function ProductDetailPage({ params }: ProductDetailPagePro
     return (
         <div className="container mx-auto px-4 py-12 min-h-[70vh]">
             <div className="mb-8">
-                <Button variant="ghost" className="pl-0 hover:bg-transparent hover:text-primary" asChild>
-                    <Link href={`/produkty/${product.category.slug}`}>
-                        <ArrowLeft className="mr-2 h-4 w-4" /> 
-                        Zpět na {product.category.name.toLowerCase()}
-                    </Link>
-                </Button>
+                <BackButton categoryName={product.category.name} />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-12 lg:gap-16">

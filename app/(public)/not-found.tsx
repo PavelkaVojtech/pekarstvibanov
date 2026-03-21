@@ -14,11 +14,11 @@ export default function NotFound() {
       </div>
 
       <h1 className="text-4xl font-serif font-bold tracking-tight">
-        Jejda! Tady žádný chleba není.
+        Na této stránce nic není.
       </h1>
       
       <p className="text-xl text-muted-foreground max-w-md mx-auto">
-        Stránka, kterou hledáte, se asi spálila v troubě nebo nikdy neexistovala.
+        Stránka, kterou hledáte, neexistuje.
       </p>
 
       <Button asChild size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 font-bold mt-4">

@@ -125,18 +125,27 @@ export default async function AdminOrdersPage({
                   <CardContent className="p-5 pt-0 space-y-5">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="space-y-1">
-                        <d                    {getPaymentStatusBadge(order.paymentType, order.isPaid) && (
-                      <div className={`flex items-center gap-2 p-2 rounded-lg ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.bgColor}`}>
-                        {getPaymentStatusBadge(order.paymentType, order.isPaid)?.paid ? (
-                          <CheckCircle2 className={`h-4 w-4 ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`} />
+                        <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase font-black">
+                          <CreditCard className="h-3 w-3" /> Platba
+                        </div>
+                        {getPaymentStatusBadge(order.paymentType, order.isPaid) ? (
+                          <div className={`flex items-center gap-2 p-2 rounded-lg ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.bgColor}`}>
+                            {getPaymentStatusBadge(order.paymentType, order.isPaid)?.paid ? (
+                              <CheckCircle2 className={`h-4 w-4 ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`} />
+                            ) : (
+                              <XCircle className={`h-4 w-4 ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`} />
+                            )}
+                            <span className={`text-sm font-bold ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`}>
+                              {getPaymentStatusBadge(order.paymentType, order.isPaid)?.label}
+                            </span>
+                          </div>
                         ) : (
-                          <XCircle className={`h-4 w-4 ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`} />
+                          <span className="text-xs text-muted-foreground">Hotovost</span>
                         )}
-                        <span className={`text-sm font-bold ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`}>
-                          {getPaymentStatusBadge(order.paymentType, order.isPaid)?.label}
-                        </span>
                       </div>
-                    )}                          <User className="h-3 w-3" /> Zákazník
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase font-black">
+                          <User className="h-3 w-3" /> Zákazník
                         </div>
                         <div className="font-bold truncate">{order.user.name}</div>
                       </div>

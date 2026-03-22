@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/table"
 import { OrderActions } from "./order-actions"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Calendar, User, CreditCard, Eye, RefreshCw } from "lucide-react"
+import { Calendar, User, CreditCard, Eye, RefreshCw, CheckCircle2, XCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { OrderFilters } from "./order-filter"
 import { Prisma } from "@prisma/client"
@@ -58,6 +58,17 @@ export default async function AdminOrdersPage({
       user: { select: { name: true, email: true } },
     }
   })
+
+  const getPaymentStatusBadge = (paymentType: string, isPaid: boolean) => {
+    if (paymentType !== "ONLINE_CARD") return null
+    
+    return {
+      paid: isPaid,
+      label: isPaid ? "Zaplaceno" : "Neypláceno",
+      color: isPaid ? "text-green-600" : "text-red-600",
+      bgColor: isPaid ? "bg-green-50" : "bg-red-50",
+    }
+  }
 
   const getStatusColor = (status: string): BadgeProps["variant"] => {
     switch (status) {
@@ -114,8 +125,18 @@ export default async function AdminOrdersPage({
                   <CardContent className="p-5 pt-0 space-y-5">
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="space-y-1">
-                        <div className="flex items-center gap-1.5 text-muted-foreground text-[10px] uppercase font-black">
-                          <User className="h-3 w-3" /> Zákazník
+                        <d                    {getPaymentStatusBadge(order.paymentType, order.isPaid) && (
+                      <div className={`flex items-center gap-2 p-2 rounded-lg ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.bgColor}`}>
+                        {getPaymentStatusBadge(order.paymentType, order.isPaid)?.paid ? (
+                          <CheckCircle2 className={`h-4 w-4 ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`} />
+                        ) : (
+                          <XCircle className={`h-4 w-4 ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`} />
+                        )}
+                        <span className={`text-sm font-bold ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`}>
+                          {getPaymentStatusBadge(order.paymentType, order.isPaid)?.label}
+                        </span>
+                      </div>
+                    )}                          <User className="h-3 w-3" /> Zákazník
                         </div>
                         <div className="font-bold truncate">{order.user.name}</div>
                       </div>
@@ -150,6 +171,7 @@ export default async function AdminOrdersPage({
                     <TableHead className="py-4 pl-6 font-bold">Číslo</TableHead>
                     <TableHead className="py-4 font-bold">Zákazník</TableHead>
                     <TableHead className="py-4 font-bold">Stav</TableHead>
+                    <TableHead className="py-4 font-bold">Platba</TableHead>
                     <TableHead className="py-4 font-bold">Typ / Dny</TableHead>
                     <TableHead className="py-4 font-bold">Cena</TableHead>
                     <TableHead className="py-4 pr-6 text-right font-bold">Akce</TableHead>
@@ -163,7 +185,21 @@ export default async function AdminOrdersPage({
                         <div className="font-bold">{order.user.name}</div>
                         <div className="text-xs text-muted-foreground">{order.user.email}</div>
                       </TableCell>
-                      <TableCell><Badge variant={getStatusColor(order.status)}>{getStatusLabel(order.status)}</Badge></TableCell>
+                      <TableCell><Badge variant={g
+                        {getPaymentStatusBadge(order.paymentType, order.isPaid) ? (
+                          <div className={`flex items-center gap-2 ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`}>
+                            {getPaymentStatusBadge(order.paymentType, order.isPaid)?.paid ? (
+                              <CheckCircle2 className="h-4 w-4" />
+                            ) : (
+                              <XCircle className="h-4 w-4" />
+                            )}
+                            <span className="text-sm font-bold">{getPaymentStatusBadge(order.paymentType, order.isPaid)?.label}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Hotovost</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="py-4">etStatusColor(order.status)}>{getStatusLabel(order.status)}</Badge></TableCell>
                       <TableCell className="py-4">
                         <div className="text-xs">{order.type === "RECURRING" ? "Pravidelná" : "Jednorázová"}</div>
                         {order.type === "RECURRING" && (

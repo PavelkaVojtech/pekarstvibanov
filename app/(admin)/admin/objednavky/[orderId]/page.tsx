@@ -285,7 +285,7 @@ export default async function AdminOrderDetailPage({
                   <TableCell colSpan={3} className="text-right font-black">
                     Celkem
                   </TableCell>
-                  <TableCell className="text-right font-black text-primary text-lg">{Number(order.totalPrice)} Kč</TableCell>
+                  <TableCell className="text-right font-black text-primary text-lg">{order.totalPrice.toNumber()} Kč</TableCell>
                 </TableRow>
               </TableBody>
             </Table>

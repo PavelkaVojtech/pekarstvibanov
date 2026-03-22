@@ -157,7 +157,7 @@ export default async function AdminOrdersPage({
                       </div>
                     </div>
                     <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="text-lg font-black text-primary">{Number(order.totalPrice)} Kč</div>
+                      <div className="text-lg font-black text-primary">{order.totalPrice.toNumber()} Kč</div>
                       {order.type === "RECURRING" && (
                         <div className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase">
                           <RefreshCw className="h-3 w-3" /> {formatRecurrence(order.recurrence)}
@@ -194,6 +194,7 @@ export default async function AdminOrdersPage({
                         <div className="font-bold">{order.user.name}</div>
                         <div className="text-xs text-muted-foreground">{order.user.email}</div>
                       </TableCell>
+                      <TableCell className="py-4"><Badge variant={getStatusColor(order.status)}>{getStatusLabel(order.status)}</Badge></TableCell>
                       <TableCell className="py-4">
                         {getPaymentStatusBadge(order.paymentType, order.isPaid) ? (
                           <div className={`flex items-center gap-2 ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`}>
@@ -208,7 +209,6 @@ export default async function AdminOrdersPage({
                           <span className="text-xs text-muted-foreground">Hotovost</span>
                         )}
                       </TableCell>
-                      <TableCell className="py-4"><Badge variant={getStatusColor(order.status)}>{getStatusLabel(order.status)}</Badge></TableCell>
                       <TableCell className="py-4">
                         <div className="text-xs">{order.type === "RECURRING" ? "Pravidelná" : "Jednorázová"}</div>
                         {order.type === "RECURRING" && (
@@ -217,7 +217,7 @@ export default async function AdminOrdersPage({
                           </div>
                         )}
                       </TableCell>
-                      <TableCell className="font-black">{Number(order.totalPrice)} Kč</TableCell>
+                      <TableCell className="font-black">{order.totalPrice.toNumber()} Kč</TableCell>
                       <TableCell className="py-4 pr-6 text-right">
                         <div className="flex items-center justify-end gap-2">
                            <Button asChild variant="ghost" size="sm"><Link href={`/admin/objednavky/${order.id}`}><Eye className="h-4 w-4 mr-1" /> Detail</Link></Button>

@@ -66,7 +66,7 @@ export default async function ThankYouPage({
                 <div className="grid gap-2 rounded-md border bg-background p-4">
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-muted-foreground">Částka</span>
-                    <span className="font-medium">{Number(order.totalPrice)} Kč</span>
+                    <span className="font-medium">{order.totalPrice.toNumber()} Kč</span>
                   </div>
                   <div className="flex items-center justify-between gap-4">
                     <span className="text-muted-foreground">Platba</span>

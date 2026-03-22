@@ -266,7 +266,7 @@ export default async function EmployeeOrderDetailPage({
                   CELKEM
                 </TableCell>
                 <TableCell className="text-right font-bold text-lg">
-                  {Number(order.totalPrice).toFixed(0)} Kč
+                  {order.totalPrice.toNumber().toFixed(0)} Kč
                 </TableCell>
               </TableRow>
             </TableBody>

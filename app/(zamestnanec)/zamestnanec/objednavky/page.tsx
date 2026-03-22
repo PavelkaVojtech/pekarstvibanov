@@ -93,7 +93,7 @@ export default async function EmployeeOrdersPage() {
                 <TableCell className="text-sm text-muted-foreground">
                   {getPaymentLabel(order.paymentType)}
                 </TableCell>
-                <TableCell>{Number(order.totalPrice)} Kč</TableCell>
+                <TableCell>{order.totalPrice.toNumber()} Kč</TableCell>
                 <TableCell>{order.createdAt.toLocaleDateString('cs-CZ')}</TableCell>
                 <TableCell>
                   <OrderActions orderId={order.id} currentStatus={order.status} />

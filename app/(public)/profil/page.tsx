@@ -447,7 +447,7 @@ export default function ProfilePage() {
                             </div>
                         )}
                         <div className="flex flex-col gap-3">
-                            <div className="text-2xl font-black text-foreground">{Number(order.totalPrice)} Kč</div>
+                            <div className="text-2xl font-black text-foreground">{order.totalPrice.toNumber()} Kč</div>
                           <div className="flex flex-wrap items-center gap-2">
                             <Badge variant={paymentStatusVariant(order)} className="w-fit font-black uppercase text-[9px] px-2 py-0">
                               {paymentStatusLabel(order)}
@@ -500,7 +500,7 @@ export default function ProfilePage() {
                             {paymentStatusLabel(order)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="py-5 font-black text-lg">{Number(order.totalPrice)} Kč</TableCell>
+                        <TableCell className="py-5 font-black text-lg">{order.totalPrice.toNumber()} Kč</TableCell>
                         <TableCell className="py-5 pr-8 text-right">
                            {order.status === "PENDING" ? (
                              <div className="flex items-center justify-end gap-2">

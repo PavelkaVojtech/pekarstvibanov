@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { PayOrderButton } from "@/components/pay-order-button"
+import { CheckPaymentStatus } from "@/components/check-payment-status"
 
 export const dynamic = "force-dynamic"
 
@@ -58,6 +59,9 @@ export default async function ThankYouPage({
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {order && order.paymentType === "ONLINE_CARD" && !order.isPaid && (
+              <CheckPaymentStatus orderId={order.id} />
+            )}
             {order ? (
               <div className="space-y-2 text-sm">
                 <p>

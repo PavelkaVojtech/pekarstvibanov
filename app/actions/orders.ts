@@ -304,6 +304,41 @@ export async function createOrder(rawData: unknown) {
   return { success: true, orderId: order.id }
 }
 
+export async function checkAndUpdatePaymentStatus(orderId: string) {
+  const session = await auth.api.getSession({ headers: await headers() })
+  if (!session) throw new Error("Neautorizováno")
+
+  const order = await prisma.order.findFirst({
+    where: { id: orderId, userId: session.user.id },
+    select: { stripeSessionId: true, isPaid: true },
+  })
+
+  if (!order) throw new Error("Objednávka nenalezena")
+  if (order.isPaid) return { success: true, isPaid: true }
+
+  if (!order.stripeSessionId) {
+    return { success: true, isPaid: false }
+  }
+
+  // Zkontroluj payment status v Stripe
+  const stripeSession = await stripe.checkout.sessions.retrieve(order.stripeSessionId)
+
+  if (stripeSession.payment_status === "paid") {
+    // Aktualizuj databázi
+    await prisma.order.update({
+      where: { id: orderId },
+      data: {
+        isPaid: true,
+        status: "CONFIRMED",
+        confirmedAt: new Date(),
+      },
+    })
+    return { success: true, isPaid: true }
+  }
+
+  return { success: true, isPaid: false }
+}
+
 export async function cancelOrder(orderId: string) {
   const session = await auth.api.getSession({ headers: await headers() })
   if (!session) throw new Error("Neautorizováno")

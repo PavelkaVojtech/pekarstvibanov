@@ -194,7 +194,7 @@ export default async function AdminOrdersPage({
                         <div className="font-bold">{order.user.name}</div>
                         <div className="text-xs text-muted-foreground">{order.user.email}</div>
                       </TableCell>
-                      <TableCell><Badge variant={g
+                      <TableCell className="py-4">
                         {getPaymentStatusBadge(order.paymentType, order.isPaid) ? (
                           <div className={`flex items-center gap-2 ${getPaymentStatusBadge(order.paymentType, order.isPaid)?.color}`}>
                             {getPaymentStatusBadge(order.paymentType, order.isPaid)?.paid ? (
@@ -208,7 +208,7 @@ export default async function AdminOrdersPage({
                           <span className="text-xs text-muted-foreground">Hotovost</span>
                         )}
                       </TableCell>
-                      <TableCell className="py-4">etStatusColor(order.status)}>{getStatusLabel(order.status)}</Badge></TableCell>
+                      <TableCell className="py-4"><Badge variant={getStatusColor(order.status)}>{getStatusLabel(order.status)}</Badge></TableCell>
                       <TableCell className="py-4">
                         <div className="text-xs">{order.type === "RECURRING" ? "Pravidelná" : "Jednorázová"}</div>
                         {order.type === "RECURRING" && (

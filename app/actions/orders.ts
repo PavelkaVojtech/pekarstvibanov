@@ -323,13 +323,6 @@ export async function checkAndUpdatePaymentStatus(orderId: string) {
   // Zkontroluj payment status v Stripe
   const stripeSession = await stripe.checkout.sessions.retrieve(order.stripeSessionId)
 
-  console.log("[checkAndUpdatePaymentStatus]", {
-    sessionId: order.stripeSessionId,
-    paymentStatus: stripeSession.payment_status,
-    paymentIntent: stripeSession.payment_intent,
-    status: stripeSession.status,
-  })
-
   // Zkus payment_status
   if (stripeSession.payment_status === "paid") {
     await prisma.order.update({

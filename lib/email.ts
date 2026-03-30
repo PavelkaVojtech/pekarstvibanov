@@ -12,7 +12,6 @@ interface EmailPayload {
 
 export async function sendEmail({ to, subject, text, html, replyTo }: EmailPayload) {
   if (!process.env.RESEND_API_KEY) {
-    console.log(`To: ${to} | Subject: ${subject}`);
     return { success: true };
   }
 
@@ -31,7 +30,6 @@ export async function sendEmail({ to, subject, text, html, replyTo }: EmailPaylo
       return { success: false, error: data.error };
     }
 
-    console.log(`Email odeslán ID: ${data.data?.id}`);
     return { success: true, data };
   } catch (error) {
     console.error("Neočekávaná chyba při odesílání:", error);

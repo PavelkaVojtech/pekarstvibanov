@@ -93,8 +93,8 @@ export async function SiteFooter() {
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs opacity-70">
           <p>&copy; {new Date().getFullYear()} Pekařství Bánov. Všechna práva vyhrazena.</p>
           <div className="flex gap-6">
-            <Link href="/podminky" className="hover:text-foreground transition-colors">Obchodní podmínky</Link>
-            <Link href="/gdpr" className="hover:text-foreground transition-colors">Ochrana osobních údajů</Link>
+            <Link href="/obchodni-podminky" className="hover:text-foreground transition-colors">Obchodní podmínky</Link>
+            <Link href="/osobni-udaje" className="hover:text-foreground transition-colors">Ochrana osobních údajů</Link>
           </div>
         </div>
       </div>

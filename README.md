@@ -1,6 +1,8 @@
 # 🍞 Informační systém pro pekárnu – webová část
 
-**Autor:** Vojtěch Pavelka
+**Autor:** Vojtěch Pavelka, 4.B
+
+**Typ Projektu:** Maturitní projekt
 
 Projekt je maturitní prací zaměřenou na vývoj komplexní webové aplikace, která pokrývá potřeby moderní pekárny v oblasti online prezentace a e-commerce.
 

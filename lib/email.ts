@@ -11,6 +11,10 @@ interface EmailPayload {
   replyTo?: string;
 }
 
+type EmailResult = 
+  | { success: true; data: any }
+  | { success: false; error: unknown };
+
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
   maxRetries: number = 3,
@@ -30,7 +34,7 @@ async function retryWithBackoff<T>(
   throw lastError;
 }
 
-export async function sendEmail({ to, subject, text, html, replyTo }: EmailPayload) {
+export async function sendEmail({ to, subject, text, html, replyTo }: EmailPayload): Promise<EmailResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim();
   const from = process.env.RESEND_FROM_EMAIL?.trim() || DEFAULT_FROM;
   const debug = process.env.EMAIL_DEBUG === '1'
@@ -42,11 +46,11 @@ export async function sendEmail({ to, subject, text, html, replyTo }: EmailPaylo
 
   if (!apiKey) {
     console.error('Email neni odeslan: chybi RESEND_API_KEY v prostredi.');
-    return { success: false, error: 'RESEND_API_KEY is missing' };
+    return { success: false, error: 'RESEND_API_KEY is missing' } as EmailResult;
   }
 
   try {
-    return await retryWithBackoff(async () => {
+    const data = await retryWithBackoff(async () => {
       const payload = {
         from,
         to: to,
@@ -62,7 +66,7 @@ export async function sendEmail({ to, subject, text, html, replyTo }: EmailPaylo
         } catch {}
       }
 
-      const data = await resend.emails.send({
+      const sdkData = await resend.emails.send({
         from,
         to: to, 
         subject: subject,
@@ -71,12 +75,12 @@ export async function sendEmail({ to, subject, text, html, replyTo }: EmailPaylo
         replyTo: replyTo,
       });
 
-      if (debug) console.log('[email.debug] resend SDK response', { ok: Boolean((data as any)?.id), data: (data as any)?.error ? { error: (data as any).error } : undefined });
+      if (debug) console.log('[email.debug] resend SDK response', { ok: Boolean((sdkData as any)?.id), data: (sdkData as any)?.error ? { error: (sdkData as any).error } : undefined });
 
-      if (data.error) {
-        console.error('Chyba Resend API (SDK):', data.error);
+      if (sdkData.error) {
+        console.error('Chyba Resend API (SDK):', sdkData.error);
 
-        if (data.error.name === 'application_error') {
+        if (sdkData.error.name === 'application_error') {
           try {
             if (debug) console.log('[email.debug] attempting REST fallback to Resend');
             const fallbackResponse = await fetch('https://api.resend.com/emails', {
@@ -104,21 +108,23 @@ export async function sendEmail({ to, subject, text, html, replyTo }: EmailPaylo
             }
 
             if (debug) console.log('[email.debug] resend REST fallback success', fallbackPayload);
-            return { success: true, data: fallbackPayload };
+            return fallbackPayload;
           } catch (fallbackError) {
             console.error('Resend fallback selhal. Zkontrolujte DNS/firewall/egress na Vercelu.', fallbackError);
             throw fallbackError;
           }
         }
 
-        throw new Error(`Resend API error: ${JSON.stringify(data.error)}`);
+        throw new Error(`Resend API error: ${JSON.stringify(sdkData.error)}`);
       }
 
-      if (debug) console.log('[email.debug] resend SDK success', data);
-      return { success: true, data };
+      if (debug) console.log('[email.debug] resend SDK success', sdkData);
+      return sdkData;
     }, maxRetries, 500);
+
+    return { success: true, data } as EmailResult;
   } catch (error) {
     console.error("Neočekávaná chyba při odesílání (po retrech):", error);
-    return { success: false, error };
+    return { success: false, error } as EmailResult;
   }
 }

@@ -70,21 +70,18 @@ export default function AuthenticationPage() {
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!signInCaptchaToken) {
-      toast({
-        title: "CAPTCHA",
-        description: "Potvrďte prosím, že nejste robot.",
-        variant: "destructive"
-      })
-      return
-    }
-
     setIsLoading(true)
-    await authClient.signIn.email({
+    
+    const payload: any = {
       email: signInEmail,
       password: signInPassword,
-      captchaToken: signInCaptchaToken,
-    } as never, {
+    }
+
+    if (signInCaptchaToken) {
+      payload.captchaToken = signInCaptchaToken
+    }
+    
+    await authClient.signIn.email(payload as never, {
       onSuccess: (ctx) => {
         setIsLoading(false)
         signInCaptchaRef.current?.reset()

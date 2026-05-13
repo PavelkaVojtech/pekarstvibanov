@@ -1,4 +1,8 @@
 export async function verifyCaptcha(token: string): Promise<boolean> {
+  if (process.env.NODE_ENV === 'development' && token === 'dev-mock-token') {
+    return true
+  }
+
   const recaptchaSecret = process.env.RECAPTCHA_SECRET_KEY
   if (!recaptchaSecret || !token) {
     return false

@@ -42,27 +42,25 @@ export default function ForgotPasswordPage() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!captchaToken) {
-      setError("Potvrďte prosím, že nejste robot.")
-      return
-    }
-
     setIsSubmitting(true)
     setError(null)
     
-    const { error } = await authClient.requestPasswordReset({
-        email: values.email,
-        redirectTo: "/obnovit-heslo", 
-      captchaToken,
-    } as never)
+    const payload: any = {
+      email: values.email,
+      redirectTo: "/obnovit-heslo",
+    }
+    
+    if (captchaToken) {
+      payload.captchaToken = captchaToken
+    }
+    
+    const { error } = await authClient.requestPasswordReset(payload)
 
     if (error) {
         setError(error.message || "Něco se nepovedlo. Zkuste to prosím znovu.")
         setIsSubmitting(false)
     } else {
         setSuccess(true)
-      captchaRef.current?.reset()
-      setCaptchaToken(null)
         setIsSubmitting(false)
     }
   }

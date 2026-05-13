@@ -11,10 +11,7 @@ const captchaBodySchema = z.object({
 }).passthrough();
 
 const CAPTCHA_PROTECTED_PATHS = new Set([
-	"/api/auth/sign-in/email",
 	"/api/auth/sign-up/email",
-	"/api/auth/request-password-reset",
-	"/api/auth/reset-password",
 ]);
 
 export const GET = handler.GET;

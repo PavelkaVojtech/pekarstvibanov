@@ -49,31 +49,35 @@ export default function ResetPasswordPage() {
   })
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!captchaToken) {
-      setError("Potvrďte prosím, že nejste robot.")
-      return
-    }
-
     setIsSubmitting(true)
     setError(null)
     
-    const { error } = await authClient.resetPassword({
-        newPassword: values.password,
-        captchaToken,
-    } as never)
+    const searchParams = new URLSearchParams(window.location.search)
+    const token = searchParams.get('token')
+    
+    const payload: any = {
+      newPassword: values.password,
+      token: token,
+    }
+    
+    if (captchaToken) {
+      payload.captchaToken = captchaToken
+    }
+
+    const { error } = await authClient.resetPassword(payload)
 
     if (error) {
-        setError(error.message || "Odkaz je neplatný nebo vypršel.")
-        setIsSubmitting(false)
+      setError(error.message || "Odkaz je neplatný nebo vypršel.")
+      setIsSubmitting(false)
     } else {
       captchaRef.current?.reset()
       setCaptchaToken(null)
-        toast({
-            title: "Heslo změněno",
-            description: "Vaše heslo bylo úspěšně obnoveno.",
-            variant: "success", 
-        })
-        router.push("/prihlaseni")
+      toast({
+        title: "Heslo změněno",
+        description: "Vaše heslo bylo úspěšně obnoveno.",
+        variant: "success", 
+      })
+      router.push("/prihlaseni")
     }
   }
 
@@ -122,7 +126,7 @@ export default function ResetPasswordPage() {
                   </FormItem>
                 )}
               />
-
+              
               <Captcha
                 ref={captchaRef}
                 onChange={(token) => {
@@ -132,7 +136,7 @@ export default function ResetPasswordPage() {
                   }
                 }}
               />
-              
+
               <Button type="submit" className="w-full font-bold" disabled={isSubmitting}>
                 {isSubmitting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Změnit heslo"}
               </Button>

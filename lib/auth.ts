@@ -40,8 +40,9 @@ export const auth = betterAuth({
           </div>
         `,
       });
-    },
+    }
   },
+  plugins: [],
   socialProviders: {
     google: {
       clientId: process.env.GOOGLE_CLIENT_ID as string,

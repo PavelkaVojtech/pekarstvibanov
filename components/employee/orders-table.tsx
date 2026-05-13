@@ -143,11 +143,6 @@ export function EmployeeOrdersTable({ orders }: EmployeeOrdersTableProps) {
               </Button>
             )}
           </div>
-          {deliveryDates.length > 0 && (
-            <div className="text-xs text-muted-foreground mt-2">
-              Dostupná data dodání: {deliveryDates.join(', ')}
-            </div>
-          )}
         </div>
 
         {/* Tabulka */}

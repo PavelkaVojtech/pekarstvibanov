@@ -119,7 +119,7 @@ export async function createProduct(_prevState: CreateProductState, formData: Fo
 
   const role = (session?.user as { role?: string } | undefined)?.role
 
-  if (role !== "ADMIN") {
+  if (!role || !["ADMIN", "EMPLOYEE"].includes(role)) {
     return { error: "Odepřeno" }
   }
 
@@ -181,7 +181,7 @@ export async function updateProduct(productId: string, _prevState: CreateProduct
 
   const role = (session?.user as { role?: string } | undefined)?.role
 
-  if (role !== "ADMIN") {
+  if (!role || !["ADMIN", "EMPLOYEE"].includes(role)) {
     return { error: "Odepřeno" }
   }
 
@@ -278,7 +278,7 @@ export async function updateProduct(productId: string, _prevState: CreateProduct
 export async function deleteProduct(id: string) {
   const session = await auth.api.getSession({ headers: await headers() })
   const role = (session?.user as { role?: string } | undefined)?.role
-  if (role !== "ADMIN") return
+  if (!role || !["ADMIN", "EMPLOYEE"].includes(role)) return
 
   try {
     const product = await prisma.product.findUnique({

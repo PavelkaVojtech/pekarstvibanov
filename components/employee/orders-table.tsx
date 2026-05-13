@@ -41,7 +41,7 @@ interface Order {
   createdAt: Date;
   requestedDeliveryDate: Date | null;
   paymentType: string;
-  note?: string;
+  note: string | null;
   user: {
     name: string;
     email: string;

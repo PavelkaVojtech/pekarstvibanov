@@ -20,8 +20,8 @@ export default async function AdminDashboard() {
 
   // Počet unikátních zákazníků
   const uniqueCustomers = await prisma.order.findMany({
-    select: { customerId: true },
-    distinct: ['customerId'],
+    select: { userId: true },
+    distinct: ['userId'],
     where: { status: { not: "CANCELLED" } }
   })
   const customerCount = uniqueCustomers.length

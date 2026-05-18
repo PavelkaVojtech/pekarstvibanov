@@ -3,10 +3,37 @@ import { ShoppingBag, Users, TrendingUp, DollarSign } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { prisma } from "@/lib/db"
 
+// Revalidate každých 60 sekund
+export const revalidate = 60
+
 export default async function AdminDashboard() {
   const pendingCount = await prisma.order.count({ where: { status: "PENDING" } })
   const paidOnlineCount = await prisma.order.count({ where: { paymentType: "ONLINE_CARD", isPaid: true } })
   const unpaidOnlineCount = await prisma.order.count({ where: { paymentType: "ONLINE_CARD", isPaid: false, status: { not: "CANCELLED" } } })
+  
+  // Celkové tržby - sum všech zaplacených objednávek
+  const totalRevenueResult = await prisma.order.aggregate({
+    where: { status: { not: "CANCELLED" }, isPaid: true },
+    _sum: { totalPrice: true }
+  })
+  const totalRevenue = totalRevenueResult._sum.totalPrice ? Number(totalRevenueResult._sum.totalPrice) : 0
+
+  // Počet unikátních zákazníků
+  const uniqueCustomers = await prisma.order.findMany({
+    select: { customerId: true },
+    distinct: ['customerId'],
+    where: { status: { not: "CANCELLED" } }
+  })
+  const customerCount = uniqueCustomers.length
+
+  // Průměrná objednávka za posledních 30 dní
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+  const avgOrderResult = await prisma.order.aggregate({
+    where: { createdAt: { gte: thirtyDaysAgo }, status: { not: "CANCELLED" } },
+    _avg: { totalPrice: true }
+  })
+  const avgOrder = avgOrderResult._avg.totalPrice ? Math.round(Number(avgOrderResult._avg.totalPrice)) : 0
+  
   const recentPending = await prisma.order.findMany({
     where: { status: "PENDING" },
     orderBy: { createdAt: "desc" },
@@ -23,8 +50,8 @@ export default async function AdminDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <StatsCard 
             title="Celkové tržby" 
-            value="0 Kč" 
-            description="+0% od minulého měsíce" 
+            value={`${new Intl.NumberFormat('cs-CZ').format(totalRevenue)} Kč`} 
+            description="Z ukončených objednávek" 
             icon={TrendingUp} 
         />
         <StatsCard 
@@ -35,13 +62,13 @@ export default async function AdminDashboard() {
         />
         <StatsCard 
             title="Zákazníci" 
-            value="0" 
+            value={customerCount} 
             description="Registrovaných uživatelů" 
             icon={Users} 
         />
         <StatsCard 
             title="Průměrná objednávka" 
-            value="0 Kč" 
+            value={`${new Intl.NumberFormat('cs-CZ').format(avgOrder)} Kč`} 
             description="Za posledních 30 dní" 
             icon={DollarSign} 
         />

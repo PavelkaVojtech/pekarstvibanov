@@ -26,8 +26,7 @@ export async function HeroSection() {
         </div>
 
         <div className="space-y-4">
-          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black text-white tracking-tighter uppercase font-serif leading-tight">
-            {settings.heroTitle}
+          <h1 className="text-4xl sm:text-5xl md:text-7xl lg:text-8xl font-black dark: tracking-tighter uppercase font-serif leading-tight">            {settings.heroTitle}
           </h1>
           <p className="text-base sm:text-lg md:text-2xl text-primary font-bold tracking-[0.2em] uppercase drop-shadow-md max-w-3xl mx-auto">
             {settings.heroSubtitle}
